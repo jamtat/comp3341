@@ -3,10 +3,12 @@
 #include <lpc24xx.h>
 
 void wait ( unsigned int ticks );
+
 inline unsigned long ToggleBit ( unsigned long number, unsigned int toggleBit );
 inline unsigned long SetBitOn ( unsigned long number, unsigned int onBit );
 inline unsigned long SetBitOff ( unsigned long number, unsigned int offBit );
 inline unsigned int IsBitOn ( unsigned long number, unsigned int testBit );
+
 void SetPortPinValue ( unsigned int port, unsigned int pin, int value );
 unsigned int GetPortPinValue ( unsigned int port, unsigned int pin );
 inline unsigned int IsButtonPressed( int button );

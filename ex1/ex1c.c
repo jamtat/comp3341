@@ -26,7 +26,7 @@ static unsigned long PROGRAM_TICKS = 0;
 
 static unsigned int STATE_LED_SELECTED = 15;
 
-static unsigned int STATE_BLEEP_BLOOP_TICKS = 1000000/2;
+static unsigned int STATE_BLEEP_BLOOP_TICKS = 1000000/4;
 
 static unsigned long STATE_LED_MASK = 0x00103002;
 
