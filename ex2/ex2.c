@@ -15,12 +15,17 @@ inline unsigned int IsButtonPressed( int button );
 
 
 
+int main ( void ) {
+	
+	return 0;
+}
+
 void wait ( unsigned int ticks )
 {
 	volatile int i;
 	 
 	for ( i = 0; i < ticks; i++);
-};
+}
 
 
 // Bit manipulation methods
@@ -31,7 +36,7 @@ inline unsigned long ToggleBit ( unsigned long number, unsigned int toggleBit )
 	unsigned long mask = (1<<toggleBit);
 	
 	return number ^ mask;
-};
+}
 
 
 inline unsigned long SetBitOn ( unsigned long number, unsigned int onBit )
@@ -58,7 +63,7 @@ inline unsigned int IsBitOn ( unsigned long number, unsigned int testBit )
 	int mask = (1<<testBit);
 	
 	return (number & mask) > 0;
-};
+}
 
 
 // Port pin setters and getters
@@ -108,7 +113,7 @@ void SetPortPinValue ( unsigned int port, unsigned int pin, int value )
 		}
 		
 	}
-};
+}
 
 
 unsigned int GetPortPinValue ( unsigned int port, unsigned int pin )
@@ -129,11 +134,11 @@ unsigned int GetPortPinValue ( unsigned int port, unsigned int pin )
 		default:
 			return 0;
 	}
-};
+}
 
 
 // Button helpers
 inline unsigned int IsButtonPressed( int button )
 {
 	return GetPortPinValue( 0, button );
-};
+}
