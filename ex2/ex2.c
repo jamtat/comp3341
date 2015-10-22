@@ -17,7 +17,7 @@ void wait ( unsigned int ticks )
 {
 	volatile int i;
 	 
-	for ( i = 0; i < ticks; i++)
+	for ( i = 0; i < ticks; i++);
 };
 
 
@@ -133,5 +133,5 @@ unsigned int GetPortPinValue ( unsigned int port, unsigned int pin )
 // Button helpers
 inline unsigned int IsButtonPressed( int button )
 {
-	return getPortPinValue( 0, button );
+	return GetPortPinValue( 0, button );
 };
