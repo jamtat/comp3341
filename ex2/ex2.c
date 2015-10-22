@@ -1,8 +1,8 @@
-// RIGHT IN THE MOTOR LAD SON R U READY TO SMELL WHAT THE ROCK IS COOKING?
-
 #include <lpc24xx.h>
 
 void wait ( unsigned int ticks );
+
+void EnablePWM ( void );
 
 inline unsigned long ToggleBit ( unsigned long number, unsigned int toggleBit );
 inline unsigned long SetBitOn ( unsigned long number, unsigned int onBit );
@@ -17,15 +17,43 @@ inline unsigned int IsButtonPressed( int button );
 
 int main ( void ) {
 	
+	EnablePWM();
+	
+	
+	
 	return 0;
 }
 
+
+// Crude for loop based wait
 void wait ( unsigned int ticks )
 {
 	volatile int i;
 	 
 	for ( i = 0; i < ticks; i++);
 }
+
+// Set the correct bits to enable PWM
+void EnablePWM ( void ) {
+	
+	// Set bits 6 and 7 in PINSEL2
+	PINSEL2 = SetBitOn( SetBitOn( PINSEL2, 6 ), 7 );
+	// Set bit 10 in PWM0PCR 
+	PWM0PCR = SetBitOn( PWM0PCR, 10 );
+	
+	// Cycle width in clock cycles
+	PWM0MR0 = 6000;
+	
+	// Instruct to reset counter to previous value
+	PWM0MCR = SetBitOn( PWM0MCR, 1 );
+	
+	// Pulse width in clock cycles
+	PWM0MR2 = 3000;
+	
+	// Enable counting and PWM
+	PWM0TCR = 0x00000009;
+}
+
 
 
 // Bit manipulation methods
