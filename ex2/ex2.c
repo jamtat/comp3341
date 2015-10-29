@@ -2,7 +2,31 @@
 
 int main ( void ) {
 	
+	int pulseWidth;
+	
 	EnableMotor();
+	
+	EnableDisplay();
+	
+	while ( 1 ) {
+		
+		for ( pulseWidth = 1; pulseWidth < PULSE_PERIOD; pulseWidth += 100 ) {
+			
+			wait( 100000 );
+			
+			SetPulseWidth( pulseWidth );
+			
+		}
+		
+		for ( pulseWidth = pulseWidth; pulseWidth > 100; pulseWidth -= 100 ) {
+			
+			wait( 100000 );
+			
+			SetPulseWidth( pulseWidth );
+			
+		}
+		
+	}
 	
 	return 0;
 }
@@ -17,6 +41,16 @@ void wait ( unsigned int ticks )
 }
 
 
+// Handle display initialisation
+void EnableDisplay ( void ) {
+	
+	// Call the library's display init function
+	textInit();
+	
+	textClear();
+	
+}
+
 // Set the correct bits to enable PWM
 void EnableMotor ( void ) {
 	
@@ -26,16 +60,32 @@ void EnableMotor ( void ) {
 	PWM0PCR = SetBitOn( PWM0PCR, 10 );
 	
 	// Pulse period in clock cycles
-	PWM0MR0 = 6000;
+	PWM0MR0 = PULSE_PERIOD;
 	
 	// Pulse width in clock cycles
-	PWM0MR2 = 3000;
+	// Set to low enough that it has no effect (appears off)
+	PWM0MR2 = 10;
 	
 	// Instruct to reset counter to previous value
 	PWM0MCR = SetBitOn( PWM0MCR, 1 );
 	
 	// Enable counting and PWM
 	PWM0TCR = 0x00000009;
+	
+}
+
+
+// Set the pulse width for the PWM
+void SetPulseWidth ( int pulseWidth ) {
+	
+	// Clamp the pulse width to the period
+	PWM0MR2 = pulseWidth > PULSE_PERIOD ? PULSE_PERIOD : pulseWidth;
+	
+	// Update PWM0MR2 on next cycle
+	PWM0LER = SetBitOn( EMPTY_MASK, 2 );
+	
+	textClear();
+	simplePrintf( "%d", pulseWidth );
 }
 
 
