@@ -16,6 +16,7 @@ void wait ( unsigned int ticks )
 	for ( i = 0; i < ticks; i++);
 }
 
+
 // Set the correct bits to enable PWM
 void EnableMotor ( void ) {
 	
@@ -33,14 +34,9 @@ void EnableMotor ( void ) {
 	// Instruct to reset counter to previous value
 	PWM0MCR = SetBitOn( PWM0MCR, 1 );
 	
-	
-	
 	// Enable counting and PWM
 	PWM0TCR = 0x00000009;
 }
-
-
-
 
 
 // Bit manipulation methods
@@ -137,15 +133,15 @@ unsigned int GetPortPinValue ( unsigned int port, unsigned int pin )
 		
 	switch ( port ) {
 		case 0:
-			return (FIO0PIN & mask) == 0;
+			return (FIO0PIN & mask) > 0;
 		case 1:
-			return (FIO1PIN & mask) == 0;
+			return (FIO1PIN & mask) > 0;
 		case 2:
-			return (FIO2PIN & mask) == 0;
+			return (FIO2PIN & mask) > 0;
 		case 3:
-			return (FIO3PIN & mask) == 0;
+			return (FIO3PIN & mask) > 0;
 		case 4:
-			return (FIO4PIN & mask) == 0;
+			return (FIO4PIN & mask) > 0;
 		default:
 			return 0;
 	}
@@ -155,5 +151,5 @@ unsigned int GetPortPinValue ( unsigned int port, unsigned int pin )
 // Button helpers
 inline unsigned int IsButtonPressed( int button )
 {
-	return GetPortPinValue( 0, button );
+	return !GetPortPinValue( 0, button );
 }
