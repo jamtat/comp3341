@@ -83,9 +83,6 @@ void SetPulseWidth ( int pulseWidth ) {
 	
 	// Update PWM0MR2 on next cycle
 	PWM0LER = SetBitOn( EMPTY_MASK, 2 );
-	
-	textClear();
-	simplePrintf( "%d", pulseWidth );
 }
 
 
