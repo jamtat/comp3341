@@ -3,6 +3,11 @@
 
 #define EMPTY_MASK 0
 
+#define TIMER_ENABLE_0 1
+#define TIMER_ENABLE_1 2
+#define TIMER_ENABLE_2 22
+#define TIMER_ENABLE_3 23
+
 #define BUTTON_UP 10
 #define BUTTON_DOWN 11
 #define BUTTON_LEFT 12
@@ -11,11 +16,17 @@
 
 #define PULSE_PERIOD 6000
 
+#define CPU_MHZ 12
 
-void wait ( unsigned int ticks );
+void wait ( unsigned int milliseconds );
 
+inline unsigned int MillisecondsToCycles( unsigned int milliseconds );
+inline unsigned int CyclesToMilliseconds( unsigned int cycles );
+
+void EnableTimer ( int timer );
 void EnableDisplay ( void );
 void EnableMotor ( void );
+void EnableRevCounter ( void );
 void SetPulseWidth ( int pulseWidth );
 
 inline unsigned long ToggleBit ( unsigned long number, unsigned int toggleBit );

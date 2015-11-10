@@ -2,47 +2,92 @@
 
 int main ( void ) {
 	
-	int pulseWidth;
+	int lastRevs;
+	int revsPerSecond;
 	
 	EnableMotor();
 	
 	EnableDisplay();
 	
-	while ( 1 ) {
+	SetPulseWidth( 2000 );
+	
+	// Set up state vars
+	
+	// Draw interface
+	
+	EnableRevCounter();
+	
+	while (1) {	
 		
-		for ( pulseWidth = 1; pulseWidth < PULSE_PERIOD; pulseWidth += 100 ) {
-			
-			wait( 100000 );
-			
-			SetPulseWidth( pulseWidth );
-			
-		}
+		lastRevs = T1TC;
 		
-		for ( pulseWidth = pulseWidth; pulseWidth > 100; pulseWidth -= 100 ) {
-			
-			wait( 100000 );
-			
-			SetPulseWidth( pulseWidth );
-			
-		}
+		wait( 1000 );
 		
+		revsPerSecond = (T1TC - lastRevs);
+		
+		textClear();
+		
+		simplePrintf( "Total revs: %d\n%d revs/sec", T1TC, revsPerSecond );
+
 	}
 	
 	return 0;
 }
 
-
-// Crude for loop based wait
-void wait ( unsigned int ticks )
+// Wait a number of milliseconds using T2
+void wait ( unsigned int milliseconds )
 {
-	volatile int i;
-	 
-	for ( i = 0; i < ticks; i++);
+	int waitCycles = MillisecondsToCycles( milliseconds );
+	
+	EnableTimer( TIMER_ENABLE_2 );
+	
+	// Reset the timer to 0
+	T2TCR = 2;
+	
+	// Clear all the T2 interrupt bits
+	T2IR |= 0x0F;
+	
+	// Set the timer target value
+	T2MR0 = waitCycles;
+	
+	// Set the timer to stop and reset when it reaches the count value and allow interrupt
+	T2MCR = 3;
+	
+	// Start the timer
+	T2TCR = 1;
+	
+	// Block execution while interrupt flag is not set
+	while ( !IsBitOn( T2IR, 0 ) );
+	
+}
+
+
+// Convert milliseconds to cycles
+inline unsigned int MillisecondsToCycles( unsigned int milliseconds )
+{
+	return 1000 * milliseconds * CPU_MHZ;
+}
+
+
+// Convert cycles to milliseconds
+inline unsigned int CyclesToMilliseconds( unsigned int cycles )
+{
+	return ( cycles / CPU_MHZ ) / 1000;
+}
+
+
+// Enable a particular timer (TIMER_X)
+void EnableTimer ( int timer ) 
+{
+	
+	// Enable the timer bit in PCONP
+	PCONP = SetBitOn( PCONP, timer );
 }
 
 
 // Handle display initialisation
-void EnableDisplay ( void ) {
+void EnableDisplay ( void )
+{
 	
 	// Call the library's display init function
 	textInit();
@@ -51,8 +96,10 @@ void EnableDisplay ( void ) {
 	
 }
 
+
 // Set the correct bits to enable PWM
-void EnableMotor ( void ) {
+void EnableMotor ( void )
+{
 	
 	// Set bits 6 and 7 in PINSEL2
 	PINSEL2 = SetBitOn( SetBitOn( PINSEL2, 6 ), 7 );
@@ -75,8 +122,28 @@ void EnableMotor ( void ) {
 }
 
 
+// Enable the rev counter with T1
+void EnableRevCounter ( void )
+{
+	
+	// Enable Timer 1
+	EnableTimer( TIMER_ENABLE_1 );
+	
+	// Enable timer and reset the timer count
+	T1TCR = SetBitOn( SetBitOn( T1TCR, 1 ), 0 );
+	
+	// Set the rev counter input pin to counter mode and stop/reset the timer
+	PINSEL3 |= (3<<6);
+	
+	// Set timer to count pulses on P1.19 and start
+	T1CTCR = 5;
+	T1TCR = 1;
+}
+
+
 // Set the pulse width for the PWM
-void SetPulseWidth ( int pulseWidth ) {
+void SetPulseWidth ( int pulseWidth )
+{
 	
 	// Clamp the pulse width to the period
 	PWM0MR2 = pulseWidth > PULSE_PERIOD ? PULSE_PERIOD : pulseWidth;
