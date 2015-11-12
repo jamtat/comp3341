@@ -1,9 +1,18 @@
 #include "ex2.h"
 
+
+int STATE_selectableSpeeds[NUM_SELECTABLE_SPEEDS];
+int STATE_selectedSpeed = 0;
+int STATE_lastRevs;
+float STATE_revsPerSecond;
+
 int main ( void ) {
-	
-	int lastRevs;
-	int revsPerSecond;
+
+	int i;
+	// Create a list of selectable speeds
+	for ( i = 0; i < NUM_SELECTABLE_SPEEDS; i++ ) {
+		STATE_selectableSpeeds[i] = i * (PULSE_PERIOD/NUM_SELECTABLE_SPEEDS);
+	}
 	
 	EnableMotor();
 	
@@ -11,28 +20,27 @@ int main ( void ) {
 	
 	SetPulseWidth( 2000 );
 	
-	// Set up state vars
-	
-	// Draw interface
-	
 	EnableRevCounter();
 	
 	while (1) {	
 		
-		lastRevs = T1TC;
+		// Save number of revolutions since last measure
+		STATE_lastRevs = T1TC;
 		
-		wait( 1000 );
+		wait( MEASURE_INTERVAL );
 		
-		revsPerSecond = (T1TC - lastRevs);
+		// Calculate revs per second based on revs since last measure
+		STATE_revsPerSecond = ((float)( T1TC - STATE_lastRevs )) / (((float)MEASURE_INTERVAL)/1000.0);
 		
-		textClear();
+		textSetCursor( 0, 0 );
 		
-		simplePrintf( "Total revs: %d\n%d revs/sec", T1TC, revsPerSecond );
+		simplePrintf( "%d revs/sec    ", (int)STATE_revsPerSecond );
 
 	}
 	
 	return 0;
 }
+
 
 // Wait a number of milliseconds using T2
 void wait ( unsigned int milliseconds )
@@ -50,7 +58,7 @@ void wait ( unsigned int milliseconds )
 	// Set the timer target value
 	T2MR0 = waitCycles;
 	
-	// Set the timer to stop and reset when it reaches the count value and allow interrupt
+	// Set the timer to stop and reset when it reaches the count value
 	T2MCR = 3;
 	
 	// Start the timer
