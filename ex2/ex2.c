@@ -5,6 +5,7 @@ int STATE_selectableSpeeds[NUM_SELECTABLE_SPEEDS];
 int STATE_selectedSpeed = 0;
 int STATE_lastRevs;
 float STATE_revsPerSecond;
+int STATE_test = 0;
 
 int main ( void ) {
 
@@ -22,6 +23,8 @@ int main ( void ) {
 	
 	EnableRevCounter();
 	
+	SetupButtonHandlers();
+	
 	while (1) {	
 		
 		// Save number of revolutions since last measure
@@ -32,13 +35,54 @@ int main ( void ) {
 		// Calculate revs per second based on revs since last measure
 		STATE_revsPerSecond = ((float)( T1TC - STATE_lastRevs )) / (((float)MEASURE_INTERVAL)/1000.0);
 		
-		textSetCursor( 0, 0 );
-		
-		simplePrintf( "%d revs/sec    ", (int)STATE_revsPerSecond );
+		DrawUI();
 
 	}
 	
 	return 0;
+}
+
+
+// Refresh the UI
+void DrawUI()
+{
+	// Draw current speed
+	textSetCursor( 0, 1 );	
+	simplePrintf( "%d revs/sec    ", (int)STATE_revsPerSecond );
+	
+	// Draw current selected pulse width/speed
+	textSetCursor( 0, 3 );
+	simplePrintf( "Current pulse width: %d", STATE_selectableSpeeds[STATE_selectedSpeed] );
+	
+	textSetCursor( 0, 5 );
+	simplePrintf( "Test: %d", STATE_test );
+	
+}
+
+void SetupButtonHandlers()
+{
+	// Enable GPIO interrupt to VIC
+	VICIntSelect &= ~(1<<17);
+	// Setup button interrupt handler
+	VICVectAddr17 = (unsigned int)OnButtonPress;
+	// Enable the handler
+	VICIntEnable |= (1<<17);
+	// Set to interrupt on rising edge
+	IO0_INT_EN_R |= (1<<BUTTON_UP)&(1<<BUTTON_DOWN);
+	// Clear EINT3
+	EXTINT = (1<<3);
+}
+
+void OnButtonPress()
+{
+	EXTINT = (1<<3);
+	IO0_INT_CLR |= (1<<BUTTON_UP) & (1<<BUTTON_DOWN);
+	VICVectAddr = 0;
+	
+	STATE_test = STATE_test ? 0 : 1;
+	
+	textSetCursor( 0, 5 );
+	simplePrintf( "Test: %d", STATE_test );
 }
 
 

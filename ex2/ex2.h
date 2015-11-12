@@ -20,6 +20,10 @@
 
 #define CPU_MHZ 12
 
+void DrawUI ( void );
+void SetupButtonHandlers ( void );
+void OnButtonPress(void) __attribute__ ((interrupt));
+
 void wait ( unsigned int milliseconds );
 
 inline unsigned int MillisecondsToCycles( unsigned int milliseconds );
