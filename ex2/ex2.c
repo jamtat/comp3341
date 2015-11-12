@@ -1,6 +1,5 @@
 #include "ex2.h"
 
-
 int STATE_selectableSpeeds[NUM_SELECTABLE_SPEEDS];
 int STATE_selectedSpeed = 0;
 int STATE_lastRevs;
@@ -12,18 +11,20 @@ int main ( void ) {
 	int i;
 	// Create a list of selectable speeds
 	for ( i = 0; i < NUM_SELECTABLE_SPEEDS; i++ ) {
-		STATE_selectableSpeeds[i] = i * (PULSE_PERIOD/NUM_SELECTABLE_SPEEDS);
+		STATE_selectableSpeeds[i] = i * (PULSE_PERIOD/(NUM_SELECTABLE_SPEEDS-1));
 	}
 	
 	EnableMotor();
 	
 	EnableDisplay();
 	
-	SetPulseWidth( 2000 );
+	SetPulseWidth( STATE_selectableSpeeds[0] );
 	
 	EnableRevCounter();
 	
 	SetupButtonHandlers();
+	
+	DrawUI();
 	
 	while (1) {	
 		
@@ -35,8 +36,7 @@ int main ( void ) {
 		// Calculate revs per second based on revs since last measure
 		STATE_revsPerSecond = ((float)( T1TC - STATE_lastRevs )) / (((float)MEASURE_INTERVAL)/1000.0);
 		
-		DrawUI();
-
+		DrawRevs();
 	}
 	
 	return 0;
@@ -46,20 +46,28 @@ int main ( void ) {
 // Refresh the UI
 void DrawUI()
 {
-	// Draw current speed
-	textSetCursor( 0, 1 );	
-	simplePrintf( "%d revs/sec    ", (int)STATE_revsPerSecond );
-	
-	// Draw current selected pulse width/speed
-	textSetCursor( 0, 3 );
-	simplePrintf( "Current pulse width: %d", STATE_selectableSpeeds[STATE_selectedSpeed] );
-	
-	textSetCursor( 0, 5 );
-	simplePrintf( "Test: %d", STATE_test );
+	DrawRevs();
+	DrawDesiredSpeed();
 	
 }
 
-void SetupButtonHandlers()
+
+// Draw current speed
+inline void DrawRevs()
+{
+	textSetCursor( 0, 1 );	
+	simplePrintf( "%d revs/sec    ", (int)STATE_revsPerSecond );
+}
+
+
+// Draw current selected pulse width/speed
+inline void DrawDesiredSpeed()
+{
+	textSetCursor( 0, 3 );
+	simplePrintf( "Current pulse width: %d    ", STATE_selectableSpeeds[STATE_selectedSpeed] );
+}
+
+inline void SetupButtonHandlers()
 {
 	// Enable GPIO interrupt to VIC
 	VICIntSelect &= ~(1<<17);
@@ -68,21 +76,30 @@ void SetupButtonHandlers()
 	// Enable the handler
 	VICIntEnable |= (1<<17);
 	// Set to interrupt on rising edge
-	IO0_INT_EN_R |= (1<<BUTTON_UP)&(1<<BUTTON_DOWN);
+	IO0_INT_EN_R |= (1<<BUTTON_UP);
+	IO0_INT_EN_R |= (1<<BUTTON_DOWN);
 	// Clear EINT3
 	EXTINT = (1<<3);
 }
 
 void OnButtonPress()
 {
+	if ( IO0_INT_STAT_R & (1<<BUTTON_UP) ) {
+		STATE_selectedSpeed = min( STATE_selectedSpeed + 1, NUM_SELECTABLE_SPEEDS - 1 );
+	}
+	
+	if ( IO0_INT_STAT_R & (1<<BUTTON_DOWN) ) {
+		STATE_selectedSpeed = max( STATE_selectedSpeed - 1, 0 );
+	}
+	
+	SetPulseWidth( STATE_selectableSpeeds[STATE_selectedSpeed] );
+	
 	EXTINT = (1<<3);
-	IO0_INT_CLR |= (1<<BUTTON_UP) & (1<<BUTTON_DOWN);
+	IO0_INT_CLR |= (1<<BUTTON_UP);
+	IO0_INT_CLR |= (1<<BUTTON_DOWN);
 	VICVectAddr = 0;
 	
-	STATE_test = STATE_test ? 0 : 1;
-	
-	textSetCursor( 0, 5 );
-	simplePrintf( "Test: %d", STATE_test );
+	DrawDesiredSpeed();
 }
 
 

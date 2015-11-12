@@ -1,6 +1,9 @@
 #include <lpc24xx.h>
 #include <textDisplay.h>
 
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
+
 #define EMPTY_MASK 0
 
 #define TIMER_ENABLE_0 1
@@ -15,13 +18,16 @@
 #define BUTTON_CENTRE 22
 
 #define PULSE_PERIOD 6000
-#define NUM_SELECTABLE_SPEEDS 4
+#define NUM_SELECTABLE_SPEEDS 6
 #define MEASURE_INTERVAL 800
 
 #define CPU_MHZ 12
 
 void DrawUI ( void );
-void SetupButtonHandlers ( void );
+inline void DrawRevs ( void );
+inline void DrawDesiredSpeed ( void );
+
+inline void SetupButtonHandlers ( void );
 void OnButtonPress(void) __attribute__ ((interrupt));
 
 void wait ( unsigned int milliseconds );
