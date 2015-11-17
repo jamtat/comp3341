@@ -7,7 +7,10 @@ float STATE_revsPerSecond;
 int STATE_test = 0;
 
 int main ( void ) {
-
+	
+	// Pre compute this float to save doing division during control loop
+	float measureIntervalSecs = ((float)MEASURE_INTERVAL)/1000.0;
+	
 	int i;
 	// Create a list of selectable speeds
 	for ( i = 0; i < NUM_SELECTABLE_SPEEDS; i++ ) {
@@ -34,7 +37,7 @@ int main ( void ) {
 		wait( MEASURE_INTERVAL );
 		
 		// Calculate revs per second based on revs since last measure
-		STATE_revsPerSecond = ((float)( T1TC - STATE_lastRevs )) / (((float)MEASURE_INTERVAL)/1000.0);
+		STATE_revsPerSecond = ((float)( T1TC - STATE_lastRevs )) / (measureIntervalSecs);
 		
 		DrawRevs();
 	}
@@ -67,6 +70,7 @@ inline void DrawDesiredSpeed()
 	simplePrintf( "Current pulse width: %d    ", STATE_selectableSpeeds[STATE_selectedSpeed] );
 }
 
+
 inline void SetupButtonHandlers()
 {
 	// Enable GPIO interrupt to VIC
@@ -82,18 +86,22 @@ inline void SetupButtonHandlers()
 	EXTINT = (1<<3);
 }
 
+
 void OnButtonPress()
-{
+{	
+	// Increment desired speed
 	if ( IO0_INT_STAT_R & (1<<BUTTON_UP) ) {
 		STATE_selectedSpeed = min( STATE_selectedSpeed + 1, NUM_SELECTABLE_SPEEDS - 1 );
 	}
 	
+	// Decrement desired speed
 	if ( IO0_INT_STAT_R & (1<<BUTTON_DOWN) ) {
 		STATE_selectedSpeed = max( STATE_selectedSpeed - 1, 0 );
 	}
 	
 	SetPulseWidth( STATE_selectableSpeeds[STATE_selectedSpeed] );
 	
+	// Clear the interrupt bits and ignore system pin interrupts
 	EXTINT = (1<<3);
 	IO0_INT_CLR |= (1<<BUTTON_UP);
 	IO0_INT_CLR |= (1<<BUTTON_DOWN);
