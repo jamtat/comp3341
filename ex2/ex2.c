@@ -5,16 +5,21 @@ int STATE_selectedSpeed = 0;
 int STATE_lastRevs;
 float STATE_revsPerSecond;
 int STATE_test = 0;
+int STATE_pulseWidth;
+int STATE_showHint = 1;
+int STATE_DEBUG = DEBUG;
+
+// Pre compute this float to save doing division during control loop
+float measureIntervalSecs = ((float)MEASURE_INTERVAL)/1000.0;
 
 int main ( void ) {
 	
-	// Pre compute this float to save doing division during control loop
-	float measureIntervalSecs = ((float)MEASURE_INTERVAL)/1000.0;
+	
 	
 	int i;
 	// Create a list of selectable speeds
 	for ( i = 0; i < NUM_SELECTABLE_SPEEDS; i++ ) {
-		STATE_selectableSpeeds[i] = i * (PULSE_PERIOD/(NUM_SELECTABLE_SPEEDS-1));
+		STATE_selectableSpeeds[i] = i*(MAX_SPEED - MIN_SPEED)/(NUM_SELECTABLE_SPEEDS-1)+MIN_SPEED;
 	}
 	
 	EnableMotor();
@@ -27,31 +32,147 @@ int main ( void ) {
 	
 	SetupButtonHandlers();
 	
-	DrawUI();
+	InitUI();
 	
 	while (1) {	
-		
-		// Save number of revolutions since last measure
-		STATE_lastRevs = T1TC;
-		
-		wait( MEASURE_INTERVAL );
-		
-		// Calculate revs per second based on revs since last measure
-		STATE_revsPerSecond = ((float)( T1TC - STATE_lastRevs )) / (measureIntervalSecs);
+	
+		MeasureSpeed();
 		
 		DrawRevs();
+		
+		ControlSpeed();
+		
 	}
 	
 	return 0;
 }
 
 
-// Refresh the UI
-void DrawUI()
+// Take a measurement in revs/sec of the current speed
+void MeasureSpeed()
 {
+	
+	// Save number of revolutions since last measure
+	STATE_lastRevs = T1TC;
+	
+	wait( MEASURE_INTERVAL );
+	
+	// Calculate revs per second based on revs since last measure
+	STATE_revsPerSecond = ((float)( T1TC - STATE_lastRevs )) / (measureIntervalSecs);
+
+}
+
+// TODO: finish proportional control
+// Use proportional control to attempt to reach the desired motor speed
+void ControlSpeed() 
+{
+	
+	int diff = STATE_selectableSpeeds[STATE_selectedSpeed] - STATE_revsPerSecond;
+
+	// 2 is a magic number derived from experimentation
+	// scale the gain factor based on the magnitude of the difference
+	int gainFactor = 2*abs(diff);
+	
+	int nextPulseWidth = gainFactor * diff + STATE_pulseWidth;
+	
+	if ( STATE_DEBUG ) {
+		DrawDebug( diff, gainFactor, nextPulseWidth, STATE_pulseWidth );
+	}
+	
+	SetPulseWidth( nextPulseWidth );
+	
+}
+
+// Refresh the UI
+void InitUI()
+{
+	lcd_fillScreen( WHITE );
+	lcd_fontColor( BLACK, WHITE );
 	DrawRevs();
 	DrawDesiredSpeed();
+	DrawOptions();
 	
+}
+
+
+// Draw the options for motor speeds
+inline void DrawOptions()
+{
+	int i;
+	
+	int startY = DISPLAY_HEIGHT - NUM_SELECTABLE_SPEEDS * UI_ROW_HEIGHT;
+	int rowY;
+	int fontX;
+	char buffer[5];
+	
+	if ( STATE_showHint ) {
+		lcd_putString( DISPLAY_WIDTH/2 - 101, startY - 15, "Use the joystick to select a speed" );
+	} else {
+		// Clear the hint
+		lcd_fillRect( 
+			DISPLAY_WIDTH/2 - 101,
+			startY - 15,
+			DISPLAY_WIDTH,
+			startY - 8,
+			WHITE
+		);
+	}
+	
+	for( i = 0; i < NUM_SELECTABLE_SPEEDS; i++ ) {
+		
+		// Centre the text
+		fontX = DISPLAY_WIDTH/2 - (STATE_selectableSpeeds[i] < 100 ? 6 : 10);
+		
+		rowY = startY + i*UI_ROW_HEIGHT;
+		
+		// Convert the number to a string
+		itoa( STATE_selectableSpeeds[i], buffer, 10 );
+		
+		if ( i != STATE_selectedSpeed ) {
+			
+			lcd_fillRect( 
+				UI_ROW_PADDING,
+				rowY,
+				DISPLAY_WIDTH - UI_ROW_PADDING*2,
+				rowY + UI_ROW_HEIGHT,
+				even(i)?NAVY:BLUE
+			);
+			
+			lcd_fontColor( WHITE, even(i)?NAVY:BLUE );
+			
+		} else {
+			
+			//Clear button area
+			lcd_fillRect( 
+				UI_ROW_PADDING,
+				rowY,
+				DISPLAY_WIDTH - UI_ROW_PADDING*2,
+				rowY + UI_ROW_HEIGHT,
+				WHITE
+			);
+			
+			// Draw highlighted option as a border
+			lcd_drawRect( 
+				UI_ROW_PADDING,
+				rowY,
+				DISPLAY_WIDTH - UI_ROW_PADDING*2,
+				rowY + UI_ROW_HEIGHT,
+				even(i)?NAVY:BLUE
+			);
+			
+			lcd_fontColor( even(i)?NAVY:BLUE, WHITE );
+
+		}
+		
+		lcd_putString( 
+			fontX,
+			rowY + ( UI_ROW_HEIGHT/2 - 3 ),
+			buffer
+		);
+		
+	}
+	
+	lcd_fontColor( BLACK, WHITE );
 }
 
 
@@ -59,7 +180,7 @@ void DrawUI()
 inline void DrawRevs()
 {
 	textSetCursor( 0, 1 );	
-	simplePrintf( "%d revs/sec    ", (int)STATE_revsPerSecond );
+	simplePrintf( "Current speed: %d revs/sec    ", (int)STATE_revsPerSecond );
 }
 
 
@@ -67,9 +188,20 @@ inline void DrawRevs()
 inline void DrawDesiredSpeed()
 {
 	textSetCursor( 0, 3 );
-	simplePrintf( "Current pulse width: %d    ", STATE_selectableSpeeds[STATE_selectedSpeed] );
+	simplePrintf( "Desired speed: %d revs/sec    ", STATE_selectableSpeeds[STATE_selectedSpeed] );
 }
 
+
+// Draw debug information
+inline void DrawDebug( int diff, int gainFactor, int nextPulseWidth, int pulseWidth )
+{
+	textSetCursor( 0, 5 );
+	simplePrintf( "Diff: %d       \n", diff );
+	simplePrintf( "Gain Factor: %d      \n", gainFactor );
+	simplePrintf( "Current PW: %d      \n", pulseWidth );
+	simplePrintf( "Diff PW: %d      \n", nextPulseWidth - pulseWidth );
+	simplePrintf( "Next PW: %d      \n", nextPulseWidth );
+}
 
 inline void SetupButtonHandlers()
 {
@@ -82,6 +214,7 @@ inline void SetupButtonHandlers()
 	// Set to interrupt on rising edge
 	IO0_INT_EN_R |= (1<<BUTTON_UP);
 	IO0_INT_EN_R |= (1<<BUTTON_DOWN);
+	IO0_INT_EN_R |= (1<<BUTTON_CENTRE);
 	// Clear EINT3
 	EXTINT = (1<<3);
 }
@@ -90,24 +223,31 @@ inline void SetupButtonHandlers()
 void OnButtonPress()
 {	
 	// Increment desired speed
-	if ( IO0_INT_STAT_R & (1<<BUTTON_UP) ) {
+	if ( IO0_INT_STAT_R & (1<<BUTTON_DOWN) ) {
 		STATE_selectedSpeed = min( STATE_selectedSpeed + 1, NUM_SELECTABLE_SPEEDS - 1 );
 	}
 	
 	// Decrement desired speed
-	if ( IO0_INT_STAT_R & (1<<BUTTON_DOWN) ) {
+	if ( IO0_INT_STAT_R & (1<<BUTTON_UP) ) {
 		STATE_selectedSpeed = max( STATE_selectedSpeed - 1, 0 );
 	}
 	
-	SetPulseWidth( STATE_selectableSpeeds[STATE_selectedSpeed] );
+	// Show extra debug info
+	if ( IO0_INT_STAT_R & (1<<BUTTON_CENTRE) ) {
+		STATE_DEBUG = 1;
+	}
 	
 	// Clear the interrupt bits and ignore system pin interrupts
 	EXTINT = (1<<3);
 	IO0_INT_CLR |= (1<<BUTTON_UP);
 	IO0_INT_CLR |= (1<<BUTTON_DOWN);
+	IO0_INT_CLR |= (1<<BUTTON_CENTRE);
 	VICVectAddr = 0;
 	
+	STATE_showHint = 0;
+	
 	DrawDesiredSpeed();
+	DrawOptions();
 }
 
 
@@ -166,6 +306,8 @@ void EnableTimer ( int timer )
 void EnableDisplay ( void )
 {
 	
+	lcd_init();
+	
 	// Call the library's display init function
 	textInit();
 	
@@ -223,7 +365,8 @@ void SetPulseWidth ( int pulseWidth )
 {
 	
 	// Clamp the pulse width to the period
-	PWM0MR2 = pulseWidth > PULSE_PERIOD ? PULSE_PERIOD : pulseWidth;
+	STATE_pulseWidth = min( max( pulseWidth, 100 ), PULSE_PERIOD );
+	PWM0MR2 = STATE_pulseWidth;
 	
 	// Update PWM0MR2 on next cycle
 	PWM0LER = SetBitOn( EMPTY_MASK, 2 );
