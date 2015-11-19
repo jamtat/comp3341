@@ -63,7 +63,7 @@ void MeasureSpeed()
 
 }
 
-// TODO: finish proportional control
+
 // Use proportional control to attempt to reach the desired motor speed
 void ControlSpeed() 
 {
@@ -82,6 +82,7 @@ void ControlSpeed()
 	SetPulseWidth( nextPulseWidth );
 	
 }
+
 
 // Refresh the UI
 void InitUI()
@@ -115,6 +116,8 @@ void InitUI()
 	
 }
 
+
+//Draw the assignment header
 inline void DrawHeader()
 {
 	lcd_fontColor( UI_BG, UI_C1 );
@@ -122,6 +125,7 @@ inline void DrawHeader()
 	lcd_putString( 8, 3, "chqx69               RTC Assignment 1" );
 	lcd_fontColor( UI_TEXT, UI_BG );
 }
+
 
 // Draw the options for motor speeds
 inline void DrawOptions()
@@ -230,6 +234,8 @@ inline void DrawDebug( int diff, int gainFactor, int nextPulseWidth, int pulseWi
 	simplePrintf( "Next PW: %d      \n", nextPulseWidth );
 }
 
+
+// Enable GPIO interrupts to handle joystick presses
 inline void SetupButtonHandlers()
 {
 	// Enable GPIO interrupt to VIC
@@ -247,6 +253,7 @@ inline void SetupButtonHandlers()
 }
 
 
+// Handle pressing of the joystick buttons
 void OnButtonPress()
 {	
 	// Increment desired speed
