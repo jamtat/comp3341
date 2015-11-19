@@ -8,6 +8,7 @@ int STATE_test = 0;
 int STATE_pulseWidth;
 int STATE_showHint = 1;
 int STATE_DEBUG = DEBUG;
+int UI_listOffset = DISPLAY_HEIGHT/2;
 
 // Pre compute this float to save doing division during control loop
 float measureIntervalSecs = ((float)MEASURE_INTERVAL)/1000.0;
@@ -69,9 +70,8 @@ void ControlSpeed()
 	
 	int diff = STATE_selectableSpeeds[STATE_selectedSpeed] - STATE_revsPerSecond;
 
-	// 2 is a magic number derived from experimentation
 	// scale the gain factor based on the magnitude of the difference
-	int gainFactor = 2*abs(diff);
+	int gainFactor = abs(diff);
 	
 	int nextPulseWidth = gainFactor * diff + STATE_pulseWidth;
 	
@@ -86,36 +86,63 @@ void ControlSpeed()
 // Refresh the UI
 void InitUI()
 {
-	lcd_fillScreen( WHITE );
-	lcd_fontColor( BLACK, WHITE );
+	//Start with black fill
+	lcd_fillScreen( BLACK );
+	
+	int y = 0;
+	
+	while ( y < DISPLAY_HEIGHT/2 ) {
+		
+		lcd_fillRect( 0, DISPLAY_HEIGHT/2 - y, DISPLAY_WIDTH, DISPLAY_HEIGHT/2+y, UI_BG );
+		y += 5;
+	}
+	
+	lcd_fillScreen( UI_BG );
+	lcd_fontColor( UI_TEXT, UI_BG );
 	DrawRevs();
 	DrawDesiredSpeed();
+	
+	while ( UI_listOffset > 0 ) {
+		
+		DrawOptions();
+		UI_listOffset = max( UI_listOffset - 5, 0 );
+		
+	}
+	
 	DrawOptions();
+	
+	DrawHeader();
 	
 }
 
+inline void DrawHeader()
+{
+	lcd_fontColor( UI_BG, UI_C1 );
+	lcd_fillRect( 0, 0, DISPLAY_WIDTH, 13, UI_C1 );
+	lcd_putString( 8, 3, "chqx69               RTC Assignment 1" );
+	lcd_fontColor( UI_TEXT, UI_BG );
+}
 
 // Draw the options for motor speeds
 inline void DrawOptions()
 {
 	int i;
-	
-	int startY = DISPLAY_HEIGHT - NUM_SELECTABLE_SPEEDS * UI_ROW_HEIGHT;
+	int startY = UI_listOffset + DISPLAY_HEIGHT - NUM_SELECTABLE_SPEEDS * UI_ROW_HEIGHT;
 	int rowY;
 	int fontX;
 	char buffer[5];
 	
+	// Clear the hint
+	lcd_fillRect(
+		DISPLAY_WIDTH/2 - 101,
+		startY - 15,
+		DISPLAY_WIDTH,
+		startY - 1,
+		UI_BG
+	);
+	
 	if ( STATE_showHint ) {
 		lcd_putString( DISPLAY_WIDTH/2 - 101, startY - 15, "Use the joystick to select a speed" );
-	} else {
-		// Clear the hint
-		lcd_fillRect( 
-			DISPLAY_WIDTH/2 - 101,
-			startY - 15,
-			DISPLAY_WIDTH,
-			startY - 8,
-			WHITE
-		);
 	}
 	
 	for( i = 0; i < NUM_SELECTABLE_SPEEDS; i++ ) {
@@ -135,10 +162,10 @@ inline void DrawOptions()
 				rowY,
 				DISPLAY_WIDTH - UI_ROW_PADDING*2,
 				rowY + UI_ROW_HEIGHT,
-				even(i)?NAVY:BLUE
+				even(i)?UI_C1:UI_C2
 			);
 			
-			lcd_fontColor( WHITE, even(i)?NAVY:BLUE );
+			lcd_fontColor( UI_BG, even(i)?UI_C1:UI_C2 );
 			
 		} else {
 			
@@ -148,7 +175,7 @@ inline void DrawOptions()
 				rowY,
 				DISPLAY_WIDTH - UI_ROW_PADDING*2,
 				rowY + UI_ROW_HEIGHT,
-				WHITE
+				UI_BG
 			);
 			
 			// Draw highlighted option as a border
@@ -157,10 +184,10 @@ inline void DrawOptions()
 				rowY,
 				DISPLAY_WIDTH - UI_ROW_PADDING*2,
 				rowY + UI_ROW_HEIGHT,
-				even(i)?NAVY:BLUE
+				even(i)?UI_C1:UI_C2
 			);
 			
-			lcd_fontColor( even(i)?NAVY:BLUE, WHITE );
+			lcd_fontColor( even(i)?UI_C1:UI_C2, UI_BG );
 
 		}
 		
@@ -172,7 +199,7 @@ inline void DrawOptions()
 		
 	}
 	
-	lcd_fontColor( BLACK, WHITE );
+	lcd_fontColor( UI_TEXT, UI_BG );
 }
 
 

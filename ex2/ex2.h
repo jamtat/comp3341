@@ -31,12 +31,18 @@
 #define UI_ROW_HEIGHT 20
 #define UI_ROW_PADDING 3
 
+#define UI_BG WHITE
+#define UI_TEXT DARK_GRAY
+#define UI_C1 BLUE
+#define UI_C2 NAVY
+
 #define CPU_MHZ 12
 
 void MeasureSpeed ( void );
 void ControlSpeed ( void );
 
 void InitUI ( void );
+inline void DrawHeader ( void );
 inline void DrawOptions ( void );
 inline void DrawRevs ( void );
 inline void DrawDesiredSpeed ( void );
