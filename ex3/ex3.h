@@ -32,9 +32,14 @@
 
 #define CPU_MHZ 12
 
+#define VOLUME_DEFAULT 5
+
 void EnableADC ( void );
 inline void TakeADCReading( void );
 inline unsigned int GetADCReading( void );
+
+void EnableDAC ( void );
+inline void SetDACOutput( unsigned int voltage );
 
 inline void SetupButtonHandlers ( void );
 void OnButtonPress(void) __attribute__ ((interrupt));

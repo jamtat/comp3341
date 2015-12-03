@@ -1,27 +1,45 @@
 #include "ex3.h"
 
+unsigned short STATE_volume = VOLUME_DEFAULT;
+
 int main ( void ) {
 	
+	EnableDisplay();
 	
+	EnableADC();
+	EnableDAC();
 	
+	// Pipe input straight to output
+	while(1) {
+		unsigned int micInput = GetADCReading();
+		
+		SetDACOutput( micInput );
+	}
 	return 0;
 }
 
 
+// Turn on the ADC
 void EnableADC ( void ) {
 	
-	// Set the analogue pin to be an input
+	// Set the ADC to be an input
 	PINSEL1 = SetBitOff( SetBitOn( PINSEL1, 16 ), 17 );
 	// Enable the ADC in the Peripheral Control Register
 	PCONP = SetBitOn( PCONP, 12 );
 }
 
+
+// Instruct the ADC to take a new reading
 inline void TakeADCReading ( void ) {
-	//     SEL   CLKDIV        P         START
-	AD0CR = 2 | (3 << 8) | (1 << 22) | (1 << 25);
+	//          SEL                CLKDIV              START  P
+	AD0CR = (0b00000010) | ((0b00000000 | 25) << 8) | (0b00100100000 << 16);
 }
 
+
+// Block and return a voltage reading when done
 inline unsigned int GetADCReading ( void ) {
+	
+	TakeADCReading();
 	
 	unsigned long hasNewValueMask = (1 << 31);
 	
@@ -30,6 +48,18 @@ inline unsigned int GetADCReading ( void ) {
 	
 	// Extract the voltage by shifting then masking
 	return (unsigned int)((AD0DR1 >> 6 ) & 0x3FF);
+}
+
+
+// Turn on the DAC
+void EnableDAC ( void ) {
+	
+	// Set the DAC to be an output
+	PINSEL1 = SetBitOn( SetBitOff( PINSEL1, 20 ), 21 );
+}
+
+inline void SetDACOutput( unsigned int voltage ) {
+	DACR = (voltage << 6);
 }
 
 
