@@ -34,6 +34,9 @@
 #define UI_TEXT DARK_GRAY
 #define UI_C1 BLUE
 #define UI_C2 NAVY
+#define UI_C_RECORDING RED
+
+#define UI_HOME_BUTTON_RADIUS 35
 
 #define CPU_MHZ 12
 
@@ -49,17 +52,30 @@ typedef struct recording {
 	unsigned int length; // Length in samples
 } Recording;
 
-typedef enum {HOME, DETAIL, RECORDING, PLAYBACK} ScreenState;
+typedef enum {HOME, RECORDING, PLAYBACK} ScreenState;
 
 typedef enum button {CENTRE, UP, RIGHT, DOWN, LEFT} Button;
 
 
 void InitUI ( void );
+void ClearScreenContents ( void );
+void DrawScreen ( void );
 void DrawScreenHome ( void );
+void DrawScreenPlayback ( void );
+void DrawScreenRecording ( void );
 
 void DrawHeader ( void );
+
 void DrawRecordingList ( void );
 void DrawHomeScreenButtons ( void );
+void DrawPlayButton ( int x, int y, int w, lcd_color_t colour );
+
+void DrawRecordingProgress ( void );
+void DrawRecordingButtons ( void );
+
+void ClearRecording ( Recording recording );
+void StartRecording ( void );
+void StopRecording ( void );
 
 void EnableADC ( void );
 inline void TakeADCReading( void );
@@ -71,7 +87,6 @@ inline void SetDACOutput( unsigned int voltage );
 inline void SetupButtonHandlers ( void );
 void OnButtonPress(void) __attribute__ ((interrupt));
 void HandleButtonPressHome ( Button button );
-void HandleButtonPressDetail ( Button button );
 void HandleButtonPressRecording ( Button button );
 void HandleButtonPressPlayback ( Button button );
 

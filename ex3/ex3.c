@@ -1,13 +1,20 @@
 #include "ex3.h"
 
+
+// Satte used on all screens
 Recording STATE_recordings[NUM_RECORDINGS];
-
-unsigned short STATE_volume = VOLUME_DEFAULT;
+int STATE_selectedRecording = 0;
 ScreenState STATE_screen = HOME;
-unsigned int STATE_selectedRecording = 0;
 
-enum homeActions {RECORD, PLAY};
-enum homeActions STATE_selectedAction = RECORD;
+// Home screen state
+enum homeActions {PLAY, RECORD};
+enum homeActions STATE_selectedActionHome = RECORD;
+
+// Recording screen state
+int STATE_recordingInProgress = 0;
+enum recordingActions {RECORD_CLEAR, RECORD_RECORD};
+enum recordingActions STATE_selectedActionRecording = RECORD_RECORD;
+int WAVE_REDRAW_INTERVAL = RECORDING_LENGTH*RECORDING_RATE/320;
 
 int main ( void )
 {
@@ -59,19 +66,106 @@ void InitUI ( void )
 };
 
 
-void DrawHeader ( void )
+void ClearScreenContents ( void )
 {
-	lcd_fontColor( UI_BG, UI_C1 );
-	lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C1 );
-	lcd_putString( 8, 3, "chqx69               RTC Assignment 2" );
-	lcd_fontColor( UI_TEXT, UI_BG );
+	lcd_fillScreen( UI_BG );
+	DrawHeader();
 }
 
 
+void DrawScreen ( void )
+{
+	
+	ClearScreenContents();
+	
+	switch ( STATE_screen ) {
+		
+		case HOME:
+			DrawScreenHome();
+			break;
+		case RECORDING:
+			DrawScreenRecording();
+			break;
+		case PLAYBACK:
+			DrawScreenPlayback();
+			break;
+	}
+}
+	
+	
 void DrawScreenHome ( void )
 {
 	DrawRecordingList();
 	DrawHomeScreenButtons();
+}
+
+
+void DrawScreenPlayback ( void )
+{
+	
+}
+
+
+void DrawScreenRecording ( void )
+{
+	// Draw the top panel
+	lcd_fillRect(
+		0,
+		UI_HEADER_HEIGHT*1.5,
+		DISPLAY_WIDTH,
+		UI_HEADER_HEIGHT*1.5 + 115,
+		BLACK
+	);
+	
+	lcd_fontColor( WHITE, BLACK );
+	
+	// Draw the maximum duration
+	char maxRecordingLength[6] = "/00:00";
+	itoa( RECORDING_LENGTH, &maxRecordingLength[4], 10 );
+	
+	lcd_putString( 
+		DISPLAY_WIDTH - 46,
+		UI_HEADER_HEIGHT*1.5 + 4,
+		maxRecordingLength
+	);
+	
+	lcd_fontColor( UI_TEXT, UI_BG );
+	lcd_putString( 
+		(DISPLAY_WIDTH - 138)/2,
+		DISPLAY_HEIGHT - UI_HEADER_HEIGHT,
+		"Press UP to return home"
+	);
+	
+	DrawRecordingProgress();
+	
+	DrawRecordingButtons();
+}
+
+
+void DrawHeader ( void )
+{
+	
+	if( !STATE_recordingInProgress ) {
+		lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C1 );
+		lcd_fontColor( UI_BG, UI_C1 );
+	} else {
+		lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C_RECORDING );
+		lcd_fontColor( UI_BG, UI_C_RECORDING );
+	}
+	switch ( STATE_screen ) {
+		
+		case HOME:
+			lcd_putString( 8, 3, "chqx69               RTC Assignment 2" );
+			break;
+		case RECORDING:
+			lcd_putString( 8, 3, "RECORD               RTC Assignment 2" );
+			break;
+		case PLAYBACK:
+			lcd_putString( 8, 3, "LISTEN               RTC Assignment 2" );
+			break;
+	}
+	
+	lcd_fontColor( UI_TEXT, UI_BG );
 }
 
 
@@ -158,7 +252,263 @@ inline void DrawRecordingList()
 void DrawHomeScreenButtons ( void )
 {
 	
+	int buttonY = DISPLAY_HEIGHT - (UI_HOME_BUTTON_RADIUS/2)*3;
+	
+	//Clear draw areas
+	lcd_fillcircle( 
+		DISPLAY_WIDTH/4,
+		buttonY,
+		UI_HOME_BUTTON_RADIUS,
+		UI_BG
+	);
+	
+	lcd_fillcircle( 
+		(DISPLAY_WIDTH/4)*3,
+		buttonY,
+		UI_HOME_BUTTON_RADIUS,
+		UI_BG
+	);
+	
+	
+	if ( STATE_selectedActionHome != PLAY ) {
+		// Draw unselected play button
+		lcd_circle( 
+			DISPLAY_WIDTH/4,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_TEXT
+		);
+		
+		DrawPlayButton(
+			DISPLAY_WIDTH/4 - UI_HOME_BUTTON_RADIUS/3,
+			buttonY - UI_HOME_BUTTON_RADIUS/2,
+			UI_HOME_BUTTON_RADIUS,
+			UI_TEXT
+		);
+		
+		// Draw selected recording button
+		
+		lcd_fillcircle( 
+			(DISPLAY_WIDTH/4)*3,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_C_RECORDING
+		);
+		
+		lcd_fillcircle( 
+			(DISPLAY_WIDTH/4)*3,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS/2,
+			UI_BG
+		);
+		
+	} else {
+		
+		// Draw selected play button
+		lcd_fillcircle( 
+			DISPLAY_WIDTH/4,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_TEXT
+		);
+		
+		DrawPlayButton(
+			DISPLAY_WIDTH/4 - UI_HOME_BUTTON_RADIUS/3,
+			buttonY - UI_HOME_BUTTON_RADIUS/2,
+			UI_HOME_BUTTON_RADIUS,
+			UI_BG
+		);
+		
+		// Draw unselected recording button
+		lcd_circle( 
+			(DISPLAY_WIDTH/4)*3,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_C_RECORDING
+		);
+		
+		lcd_fillcircle( 
+			(DISPLAY_WIDTH/4)*3,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS/2,
+			UI_C_RECORDING
+		);
+		
+	}
+	
+	
+	
 }
+
+
+void DrawPlayButton ( int x, int y, int h, lcd_color_t colour )
+{
+	int i = 0;
+	
+	for ( i = 0; i < h; i++ ) {
+		
+		lcd_line(
+			x + i,
+			y + i/2,
+			x + i,
+			y + h - i/2,
+			colour
+		);
+		
+	}
+}
+
+
+void DrawRecordingProgress ( void )
+{
+	
+	// Update the progress text
+	lcd_fontColor( WHITE, BLACK );
+	
+	char recordingLength[6] = "00:00";
+	
+	int seconds = STATE_recordings[STATE_selectedRecording].length/RECORDING_RATE;
+		
+	if ( seconds < 10 ) {
+		itoa( 0, &recordingLength[3], 10 );
+		itoa( seconds, &recordingLength[4], 10 );
+	} else {
+		itoa( seconds, &recordingLength[3], 10 );
+	}
+	
+	lcd_putString( 
+		DISPLAY_WIDTH - 76,
+		UI_HEADER_HEIGHT*1.5 + 4,
+		recordingLength
+	);
+	
+	// Update the waveform
+	
+	float progress = (float)seconds/(float)RECORDING_LENGTH;
+	
+	lcd_drawRect(
+		0,
+		UI_HEADER_HEIGHT*1.5 + 10,
+		(int)(progress * (float)DISPLAY_WIDTH),
+		UI_HEADER_HEIGHT*1.5 + 115,
+		UI_C1
+	);
+}
+
+
+void DrawRecordingButtons ( void )
+{
+	int buttonY = DISPLAY_HEIGHT - (UI_HOME_BUTTON_RADIUS/2)*3;
+	
+	//Clear draw areas
+	lcd_fillRect(
+		0,
+		buttonY - UI_HOME_BUTTON_RADIUS,
+		DISPLAY_WIDTH,
+		buttonY + UI_HOME_BUTTON_RADIUS,
+		UI_BG
+	);
+	
+	
+	
+	//Draw clear button
+	if ( STATE_selectedActionRecording != RECORD_CLEAR ) {
+		lcd_fontColor( UI_TEXT, UI_BG );
+		lcd_circle( 
+			DISPLAY_WIDTH/4,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_TEXT
+		);
+		
+		lcd_putString( DISPLAY_WIDTH/4-14, buttonY-3, "CLEAR" );
+	} else {
+		lcd_fontColor( UI_BG, UI_TEXT );
+		lcd_fillcircle( 
+			DISPLAY_WIDTH/4,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_TEXT
+		);
+		
+		lcd_putString( DISPLAY_WIDTH/4-14, buttonY-3, "CLEAR" );
+	}
+	
+	int recordingButtonX = (DISPLAY_WIDTH/4)*3;
+	
+	//Draw recording button
+	if ( STATE_selectedActionRecording != RECORD_RECORD ) {	
+		lcd_circle( 
+			recordingButtonX,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_C_RECORDING
+		);
+		
+		lcd_fillcircle( 
+			recordingButtonX,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS/2,
+			UI_C_RECORDING
+		);
+	} else {
+		lcd_fillcircle( 
+			recordingButtonX,
+			buttonY,
+			UI_HOME_BUTTON_RADIUS,
+			UI_C_RECORDING
+		);
+		
+		// Draw a pause icon if recording
+		if ( !STATE_recordingInProgress ) {
+			lcd_fillcircle( 
+				recordingButtonX,
+				buttonY,
+				UI_HOME_BUTTON_RADIUS/2,
+				UI_BG
+			);
+		} else {
+			lcd_fillRect(
+				recordingButtonX - 10,
+				buttonY - UI_HOME_BUTTON_RADIUS/2,
+				recordingButtonX - 3,
+				buttonY + UI_HOME_BUTTON_RADIUS/2,
+				UI_BG
+			);
+			lcd_fillRect(
+				recordingButtonX + 3,
+				buttonY - UI_HOME_BUTTON_RADIUS/2,
+				recordingButtonX + 10,
+				buttonY + UI_HOME_BUTTON_RADIUS/2,
+				UI_BG
+			);
+		}
+	}
+}
+
+
+void ClearRecording ( Recording recording )
+{
+	int i = 0;
+	recording.length = 0;
+	
+	for ( i = 0; i < RECORDING_LENGTH*RECORDING_RATE; i++ ) {
+		recording.samples[i] = 0;
+	}
+}
+
+
+void StartRecording ( void )
+{
+	STATE_recordingInProgress = 1;
+}
+
+
+void StopRecording ( void )
+{
+	STATE_recordingInProgress = 0;
+}
+
 
 // Turn on the ADC
 void EnableADC ( void )
@@ -254,9 +604,6 @@ void OnButtonPress()
 		case HOME:
 			HandleButtonPressHome ( buttonPressed );
 			break;
-		case DETAIL:
-			HandleButtonPressDetail ( buttonPressed );
-			break;
 		case RECORDING:
 			HandleButtonPressRecording ( buttonPressed );
 			break;
@@ -276,11 +623,14 @@ void OnButtonPress()
 }
 
 
-void HandleButtonPressHome ( Button button ) {
+void HandleButtonPressHome ( Button button )
+{
 	
 	switch ( button ) {
 		
 		case CENTRE:
+			STATE_screen = (STATE_selectedActionHome == PLAY) ? PLAYBACK : RECORDING;
+			DrawScreen();
 			break;
 		
 		case UP:
@@ -295,7 +645,7 @@ void HandleButtonPressHome ( Button button ) {
 			
 		case LEFT:
 		case RIGHT:
-			STATE_selectedAction = STATE_selectedAction == PLAY ? RECORD : PLAY;
+			STATE_selectedActionHome = STATE_selectedActionHome == PLAY ? RECORD : PLAY;
 			DrawHomeScreenButtons();
 			break;
 		
@@ -303,51 +653,54 @@ void HandleButtonPressHome ( Button button ) {
 }
 
 
-void HandleButtonPressDetail ( Button button ) {
+void HandleButtonPressRecording ( Button button )
+{
 	switch ( button ) {
 		
 		case CENTRE:
+			
+			switch ( STATE_selectedActionRecording ) {
+				case RECORD_RECORD:
+				if ( STATE_recordingInProgress ) {
+					StopRecording();
+				} else {
+					StartRecording();
+				}
+				DrawRecordingButtons();
+				break;
+				
+				case RECORD_CLEAR:
+				ClearRecording( STATE_recordings[STATE_selectedRecording] );
+				DrawRecordingProgress();
+				break;
+			}
+			
 			break;
 		
 		case UP:
+			StopRecording();
+			STATE_screen = HOME;
+			DrawScreen();
 			break;
 			
 		case DOWN:
 			break;
 			
 		case LEFT:
-			break;
-			
 		case RIGHT:
+			if ( STATE_recordingInProgress ) break;
+			STATE_selectedActionRecording = STATE_selectedActionRecording == RECORD_CLEAR ? RECORD_RECORD : RECORD_CLEAR;
+			DrawRecordingButtons();
 			break;
 		
 	}
+	
+	DrawHeader();
 }
 
 
-void HandleButtonPressRecording ( Button button ) {
-	switch ( button ) {
-		
-		case CENTRE:
-			break;
-		
-		case UP:
-			break;
-			
-		case DOWN:
-			break;
-			
-		case LEFT:
-			break;
-			
-		case RIGHT:
-			break;
-		
-	}
-}
-
-
-void HandleButtonPressPlayback ( Button button ) {
+void HandleButtonPressPlayback ( Button button )
+{
 	switch ( button ) {
 		
 		case CENTRE:
