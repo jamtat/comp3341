@@ -5,6 +5,9 @@
 
 #define DEBUG 0
 
+#define TRUE 1
+#define FALSE 0
+
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
 #define even(a) (a%2==0)
@@ -40,7 +43,20 @@
 #define RECORDING_LENGTH 10
 #define RECORDING_RATE 44000
 
+
+typedef struct recording {
+	unsigned int samples[RECORDING_LENGTH*RECORDING_RATE];
+	unsigned int length; // Length in samples
+} Recording;
+
+typedef enum {HOME, DETAIL, RECORDING, PLAYBACK} ScreenState;
+
+typedef enum button {CENTRE, UP, RIGHT, DOWN, LEFT} Button;
+
+
 void InitUI ( void );
+void DrawScreenHome ( void );
+
 void DrawHeader ( void );
 void DrawRecordingList ( void );
 
@@ -53,6 +69,10 @@ inline void SetDACOutput( unsigned int voltage );
 
 inline void SetupButtonHandlers ( void );
 void OnButtonPress(void) __attribute__ ((interrupt));
+void HandleButtonPressHome ( Button button );
+void HandleButtonPressDetail ( Button button );
+void HandleButtonPressRecording ( Button button );
+void HandleButtonPressPlayback ( Button button );
 
 void wait ( unsigned int milliseconds );
 

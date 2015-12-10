@@ -1,12 +1,13 @@
 #include "ex3.h"
 
-typedef struct recording {
-	int samples[RECORDING_LENGTH*RECORDING_RATE];
-	int length; // Length in samples
-} Recording;
+Recording STATE_recordings[NUM_RECORDINGS];
 
 unsigned short STATE_volume = VOLUME_DEFAULT;
+ScreenState STATE_screen = HOME;
 unsigned int STATE_selectedRecording = 0;
+
+enum homeActions = {RECORD, PLAY}
+enum homeActions STATE_selectedAction = RECORD;
 
 int main ( void )
 {
@@ -16,7 +17,16 @@ int main ( void )
 	EnableADC();
 	EnableDAC();
 	
+	// Initialise the recordings
+	int i = 0;
+	for ( i = 0; i < NUM_RECORDINGS; i++ ) {
+		STATE_recordings[i].length = 0;
+	}
+	
+	
 	InitUI();
+	
+	SetupButtonHandlers();
 	
 	// Pipe input straight to output
 	while(1) {
@@ -45,7 +55,7 @@ void InitUI ( void )
 	lcd_fontColor( UI_TEXT, UI_BG );
 	
 	DrawHeader();
-	DrawRecordingList();
+	DrawScreenHome();
 };
 
 
@@ -58,20 +68,38 @@ void DrawHeader ( void )
 }
 
 
+void DrawScreenHome ( void )
+{
+	DrawRecordingList();
+	DrawHomeScreenButtons();
+}
+
+
 // Draw the list of recordings
 inline void DrawRecordingList()
 {
 	int i;
 	int startY = UI_HEADER_HEIGHT*2;
 	int rowY;
-	char buffer[11] = "Recording 0";
+	char recordingName[11] = "Recording 0";
+	char recordingLength[5] = "00:00";
 	
 	for( i = 0; i < NUM_RECORDINGS; i++ ) {
 		
 		rowY = startY + i*UI_ROW_HEIGHT;
 		
-		// Convert the number to a string
-		itoa( i+1, &buffer[10], 10 );
+		// Compose the track names and lengths
+		itoa( i+1, &recordingName[10], 10 );
+		
+		int seconds = STATE_recordings[i].length/RECORDING_RATE;
+		
+		if ( seconds < 10 ) {
+			itoa( 0, &recordingLength[3], 10 );
+			itoa( seconds, &recordingLength[4], 10 );
+		} else {
+			itoa( seconds, &recordingLength[3], 10 );
+		}
+		
 		
 		if ( i != STATE_selectedRecording ) {
 			
@@ -110,9 +138,15 @@ inline void DrawRecordingList()
 		}
 		
 		lcd_putString( 
-			UI_ROW_PADDING*2,
+			UI_ROW_PADDING*3,
 			rowY + ( UI_ROW_HEIGHT/2 - 3 ),
-			buffer
+			recordingName
+		);
+		
+		lcd_putString( 
+			DISPLAY_WIDTH - UI_ROW_PADDING*2 - 33,
+			rowY + ( UI_ROW_HEIGHT/2 - 3 ),
+			recordingLength
 		);
 		
 	}
@@ -120,6 +154,11 @@ inline void DrawRecordingList()
 	lcd_fontColor( UI_TEXT, UI_BG );
 }
 
+
+void DrawHomeScreenButtons ( void )
+{
+	
+}
 
 // Turn on the ADC
 void EnableADC ( void )
@@ -192,9 +231,38 @@ inline void SetupButtonHandlers()
 
 // Handle pressing of the joystick buttons
 void OnButtonPress()
-{	
+{
+	Button buttonPressed;
+	if ( IO0_INT_STAT_R & (1<<BUTTON_UP) ) {
+		buttonPressed = UP;
+	}
+	if ( IO0_INT_STAT_R & (1<<BUTTON_DOWN) ) {
+		buttonPressed = DOWN;
+	}
+	if ( IO0_INT_STAT_R & (1<<BUTTON_LEFT) ) {
+		buttonPressed = LEFT;
+	}
+	if ( IO0_INT_STAT_R & (1<<BUTTON_RIGHT) ) {
+		buttonPressed = RIGHT;
+	}
 	if ( IO0_INT_STAT_R & (1<<BUTTON_CENTRE) ) {
+		buttonPressed = CENTRE;
+	}
+	
+	switch ( STATE_screen ) {
 		
+		case HOME:
+			HandleButtonPressHome ( buttonPressed );
+			break;
+		case DETAIL:
+			HandleButtonPressDetail ( buttonPressed );
+			break;
+		case RECORDING:
+			HandleButtonPressRecording ( buttonPressed );
+			break;
+		case PLAYBACK:
+			HandleButtonPressPlayback ( buttonPressed );
+			break;
 	}
 	
 	// Clear the interrupt bits and ignore system pin interrupts
@@ -205,7 +273,99 @@ void OnButtonPress()
 	IO0_INT_CLR |= (1<<BUTTON_RIGHT);
 	IO0_INT_CLR |= (1<<BUTTON_CENTRE);
 	VICVectAddr = 0;
+}
 
+
+void HandleButtonPressHome ( Button button ) {
+	
+	switch ( button ) {
+		
+		case CENTRE:
+			break;
+		
+		case UP:
+			STATE_selectedRecording = max( 0, STATE_selectedRecording - 1 );
+			break;
+			
+		case DOWN:
+			STATE_selectedRecording = min( NUM_RECORDINGS - 1, STATE_selectedRecording + 1 );
+			break;
+			
+		case LEFT:
+			break;
+			
+		case RIGHT:
+			break;
+		
+	}
+	
+	DrawScreenHome();
+}
+
+
+void HandleButtonPressDetail ( Button button ) {
+	switch ( button ) {
+		
+		case CENTRE:
+			break;
+		
+		case UP:
+			break;
+			
+		case DOWN:
+			break;
+			
+		case LEFT:
+			break;
+			
+		case RIGHT:
+			break;
+		
+	}
+}
+
+
+void HandleButtonPressRecording ( Button button ) {
+	switch ( button ) {
+		
+		case CENTRE:
+			break;
+		
+		case UP:
+			break;
+			
+		case DOWN:
+			break;
+			
+		case LEFT:
+			break;
+			
+		case RIGHT:
+			break;
+		
+	}
+}
+
+
+void HandleButtonPressPlayback ( Button button ) {
+	switch ( button ) {
+		
+		case CENTRE:
+			break;
+		
+		case UP:
+			break;
+			
+		case DOWN:
+			break;
+			
+		case LEFT:
+			break;
+			
+		case RIGHT:
+			break;
+		
+	}
 }
 
 
