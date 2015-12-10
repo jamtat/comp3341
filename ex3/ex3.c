@@ -618,6 +618,7 @@ void EnableDAC ( void )
 	PINSEL1 = SetBitOn( SetBitOff( PINSEL1, 20 ), 21 );
 }
 
+
 inline void SetDACOutput( unsigned int voltage )
 {
 	DACR = (voltage << 6);
@@ -774,6 +775,8 @@ void HandleButtonPressPlayback ( Button button )
 			break;
 		
 		case UP:
+			STATE_screen = HOME;
+			DrawScreen();
 			break;
 			
 		case DOWN:
@@ -858,6 +861,7 @@ void EnableDisplay ( void )
 	textClear();
 	
 }
+
 
 // Bit manipulation methods
 // Make use of inline functions for increased readability over macros
