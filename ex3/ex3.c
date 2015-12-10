@@ -14,6 +14,7 @@ enum homeActions STATE_selectedActionHome = RECORD;
 
 // Recording screen state
 int STATE_recordingInProgress = 0;
+int STATE_recordingInterrupted = 0;
 enum recordingActions {RECORD_CLEAR, RECORD_RECORD};
 enum recordingActions STATE_selectedActionRecording = RECORD_RECORD;
 
@@ -540,9 +541,10 @@ void StartRecording ( void )
 	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
 	unsigned int sample;
 	
-	while ( STATE_recordingInProgress ) {
+	while ( STATE_recordingInProgress  ) {
 		
-		if ( *l == MAX_RECORDING_LENGTH ) {
+		if ( *l == MAX_RECORDING_LENGTH || IsButtonPressed( BUTTON_CENTRE ) ) {
+			STATE_recordingInterrupted = IsButtonPressed( BUTTON_CENTRE );
 			StopRecording();
 			break;
 		}
@@ -726,8 +728,10 @@ void HandleButtonPressRecording ( Button button )
 				case RECORD_RECORD:
 					if ( STATE_recordingInProgress ) {
 						StopRecording();
-					} else {
+					} else if( !STATE_recordingInterrupted ) {
 						StartRecording();
+					} else {
+						STATE_recordingInterrupted = 0;
 					}
 					DrawRecordingButtons();
 					break;
@@ -790,6 +794,13 @@ void wait ( unsigned int milliseconds )
 {
 	int waitCycles = MillisecondsToCycles( milliseconds );
 	
+	WaitForCycles( waitCycles );
+}
+
+
+// Wait for a particular number of cycles
+void WaitForCycles ( unsigned int cycles )
+{
 	EnableTimer( TIMER_ENABLE_2 );
 	
 	// Reset the timer to 0
@@ -799,7 +810,7 @@ void wait ( unsigned int milliseconds )
 	T2IR |= 0x0F;
 	
 	// Set the timer target value
-	T2MR0 = waitCycles;
+	T2MR0 = cycles;
 	
 	// Set the timer to stop and reset when it reaches the count value
 	T2MCR = 3;
@@ -809,7 +820,6 @@ void wait ( unsigned int milliseconds )
 	
 	// Block execution while interrupt flag is not set
 	while ( !IsBitOn( T2IR, 0 ) );
-	
 }
 
 

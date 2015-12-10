@@ -93,6 +93,7 @@ void HandleButtonPressRecording ( Button button );
 void HandleButtonPressPlayback ( Button button );
 
 void wait ( unsigned int milliseconds );
+void WaitForCycles ( unsigned int cycles );
 
 inline unsigned int MillisecondsToCycles( unsigned int milliseconds );
 inline unsigned int CyclesToMilliseconds( unsigned int cycles );
