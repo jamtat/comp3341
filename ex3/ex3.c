@@ -8,7 +8,8 @@ typedef struct recording {
 unsigned short STATE_volume = VOLUME_DEFAULT;
 unsigned int STATE_selectedRecording = 0;
 
-int main ( void ) {
+int main ( void )
+{
 	
 	EnableDisplay();
 	
@@ -27,7 +28,8 @@ int main ( void ) {
 }
 
 
-void InitUI ( void ) {
+void InitUI ( void )
+{
 	//Start with black fill
 	lcd_fillScreen( BLACK );
 	
@@ -47,7 +49,8 @@ void InitUI ( void ) {
 };
 
 
-void DrawHeader ( void ) {
+void DrawHeader ( void )
+{
 	lcd_fontColor( UI_BG, UI_C1 );
 	lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C1 );
 	lcd_putString( 8, 3, "chqx69               RTC Assignment 2" );
@@ -119,7 +122,8 @@ inline void DrawRecordingList()
 
 
 // Turn on the ADC
-void EnableADC ( void ) {
+void EnableADC ( void )
+{
 	
 	// Set the ADC to be an input
 	PINSEL1 = SetBitOff( SetBitOn( PINSEL1, 16 ), 17 );
@@ -129,14 +133,16 @@ void EnableADC ( void ) {
 
 
 // Instruct the ADC to take a new reading
-inline void TakeADCReading ( void ) {
+inline void TakeADCReading ( void )
+{
 	//          SEL                CLKDIV              START  P
 	AD0CR = (0b00000010) | ((0b00000000 | 25) << 8) | (0b00100100000 << 16);
 }
 
 
 // Block and return a voltage reading when done
-inline unsigned int GetADCReading ( void ) {
+inline unsigned int GetADCReading ( void )
+{
 	
 	TakeADCReading();
 	
@@ -151,13 +157,15 @@ inline unsigned int GetADCReading ( void ) {
 
 
 // Turn on the DAC
-void EnableDAC ( void ) {
+void EnableDAC ( void )
+{
 	
 	// Set the DAC to be an output
 	PINSEL1 = SetBitOn( SetBitOff( PINSEL1, 20 ), 21 );
 }
 
-inline void SetDACOutput( unsigned int voltage ) {
+inline void SetDACOutput( unsigned int voltage )
+{
 	DACR = (voltage << 6);
 }
 
