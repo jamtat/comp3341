@@ -6,7 +6,7 @@ unsigned short STATE_volume = VOLUME_DEFAULT;
 ScreenState STATE_screen = HOME;
 unsigned int STATE_selectedRecording = 0;
 
-enum homeActions = {RECORD, PLAY}
+enum homeActions {RECORD, PLAY};
 enum homeActions STATE_selectedAction = RECORD;
 
 int main ( void )
@@ -285,21 +285,21 @@ void HandleButtonPressHome ( Button button ) {
 		
 		case UP:
 			STATE_selectedRecording = max( 0, STATE_selectedRecording - 1 );
+			DrawRecordingList();
 			break;
 			
 		case DOWN:
 			STATE_selectedRecording = min( NUM_RECORDINGS - 1, STATE_selectedRecording + 1 );
+			DrawRecordingList();
 			break;
 			
 		case LEFT:
-			break;
-			
 		case RIGHT:
+			STATE_selectedAction = STATE_selectedAction == PLAY ? RECORD : PLAY;
+			DrawHomeScreenButtons();
 			break;
 		
 	}
-	
-	DrawScreenHome();
 }
 
 

@@ -59,6 +59,7 @@ void DrawScreenHome ( void );
 
 void DrawHeader ( void );
 void DrawRecordingList ( void );
+void DrawHomeScreenButtons ( void );
 
 void EnableADC ( void );
 inline void TakeADCReading( void );
