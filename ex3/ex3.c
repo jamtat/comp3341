@@ -391,18 +391,21 @@ void DrawWholeRecordingWaveform ( void )
 {
 	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
 	
-	int l = STATE_recordings[STATE_selectedRecording].length/WAVE_REDRAW_INTERVAL;
+	int l = STATE_recordings[STATE_selectedRecording].length;
 	int i = 0;
+	int x = 0;
 	
-	for ( i = 0; i < l; i++ ) {
+	for ( i = 0; i < l; i += WAVE_REDRAW_INTERVAL ) {
 		
 		lcd_line(
-			i,
+			x,
 			baseY,
-			i,
+			x,
 			baseY - ( (STATE_recordings[STATE_selectedRecording].samples[i]*100) / 1024 ),
 			UI_C1
 		);
+		
+		x++;
 	}
 	
 }
