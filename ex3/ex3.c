@@ -1,6 +1,12 @@
 #include "ex3.h"
 
+typedef struct recording {
+	int samples[RECORDING_LENGTH*RECORDING_RATE];
+	int length; // Length in samples
+} Recording;
+
 unsigned short STATE_volume = VOLUME_DEFAULT;
+unsigned int STATE_selectedRecording = 0;
 
 int main ( void ) {
 	
@@ -9,6 +15,8 @@ int main ( void ) {
 	EnableADC();
 	EnableDAC();
 	
+	InitUI();
+	
 	// Pipe input straight to output
 	while(1) {
 		unsigned int micInput = GetADCReading();
@@ -16,6 +24,97 @@ int main ( void ) {
 		SetDACOutput( micInput );
 	}
 	return 0;
+}
+
+
+void InitUI ( void ) {
+	//Start with black fill
+	lcd_fillScreen( BLACK );
+	
+	int y = 0;
+	
+	while ( y < DISPLAY_HEIGHT/2 ) {
+		
+		lcd_fillRect( 0, DISPLAY_HEIGHT/2 - y, DISPLAY_WIDTH, DISPLAY_HEIGHT/2+y, UI_BG );
+		y += 5;
+	}
+	
+	lcd_fillScreen( UI_BG );
+	lcd_fontColor( UI_TEXT, UI_BG );
+	
+	DrawHeader();
+	DrawRecordingList();
+};
+
+
+void DrawHeader ( void ) {
+	lcd_fontColor( UI_BG, UI_C1 );
+	lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C1 );
+	lcd_putString( 8, 3, "chqx69               RTC Assignment 2" );
+	lcd_fontColor( UI_TEXT, UI_BG );
+}
+
+
+// Draw the list of recordings
+inline void DrawRecordingList()
+{
+	int i;
+	int startY = UI_HEADER_HEIGHT*2;
+	int rowY;
+	char buffer[11] = "Recording 0";
+	
+	for( i = 0; i < NUM_RECORDINGS; i++ ) {
+		
+		rowY = startY + i*UI_ROW_HEIGHT;
+		
+		// Convert the number to a string
+		itoa( i+1, &buffer[10], 10 );
+		
+		if ( i != STATE_selectedRecording ) {
+			
+			lcd_fillRect( 
+				UI_ROW_PADDING,
+				rowY,
+				DISPLAY_WIDTH - UI_ROW_PADDING*2,
+				rowY + UI_ROW_HEIGHT,
+				even(i)?UI_C1:UI_C2
+			);
+			
+			lcd_fontColor( UI_BG, even(i)?UI_C1:UI_C2 );
+			
+		} else {
+			
+			//Clear button area
+			lcd_fillRect( 
+				UI_ROW_PADDING,
+				rowY,
+				DISPLAY_WIDTH - UI_ROW_PADDING*2,
+				rowY + UI_ROW_HEIGHT,
+				UI_BG
+			);
+			
+			// Draw highlighted option as a border
+			lcd_drawRect( 
+				UI_ROW_PADDING,
+				rowY,
+				DISPLAY_WIDTH - UI_ROW_PADDING*2,
+				rowY + UI_ROW_HEIGHT,
+				even(i)?UI_C1:UI_C2
+			);
+			
+			lcd_fontColor( even(i)?UI_C1:UI_C2, UI_BG );
+
+		}
+		
+		lcd_putString( 
+			UI_ROW_PADDING*2,
+			rowY + ( UI_ROW_HEIGHT/2 - 3 ),
+			buffer
+		);
+		
+	}
+	
+	lcd_fontColor( UI_TEXT, UI_BG );
 }
 
 

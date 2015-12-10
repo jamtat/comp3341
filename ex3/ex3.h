@@ -22,6 +22,8 @@
 #define BUTTON_RIGHT 13
 #define BUTTON_CENTRE 22
 
+#define UI_HEADER_HEIGHT 13
+
 #define UI_ROW_HEIGHT 20
 #define UI_ROW_PADDING 3
 
@@ -33,6 +35,14 @@
 #define CPU_MHZ 12
 
 #define VOLUME_DEFAULT 5
+
+#define NUM_RECORDINGS 5
+#define RECORDING_LENGTH 10
+#define RECORDING_RATE 44000
+
+void InitUI ( void );
+void DrawHeader ( void );
+void DrawRecordingList ( void );
 
 void EnableADC ( void );
 inline void TakeADCReading( void );
