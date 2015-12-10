@@ -5,6 +5,8 @@
 Recording STATE_recordings[NUM_RECORDINGS];
 int STATE_selectedRecording = 0;
 ScreenState STATE_screen = HOME;
+unsigned int MAX_RECORDING_LENGTH = RECORDING_LENGTH*RECORDING_RATE;
+unsigned int WAVE_REDRAW_INTERVAL = (RECORDING_LENGTH*RECORDING_RATE)/DISPLAY_WIDTH;
 
 // Home screen state
 enum homeActions {PLAY, RECORD};
@@ -14,7 +16,7 @@ enum homeActions STATE_selectedActionHome = RECORD;
 int STATE_recordingInProgress = 0;
 enum recordingActions {RECORD_CLEAR, RECORD_RECORD};
 enum recordingActions STATE_selectedActionRecording = RECORD_RECORD;
-int WAVE_REDRAW_INTERVAL = RECORDING_LENGTH*RECORDING_RATE/320;
+
 
 int main ( void )
 {
@@ -36,11 +38,11 @@ int main ( void )
 	SetupButtonHandlers();
 	
 	// Pipe input straight to output
-	while(1) {
+	/*while(1) {
 		unsigned int micInput = GetADCReading();
 		
 		SetDACOutput( micInput );
-	}
+	}*/
 	return 0;
 }
 
@@ -137,6 +139,7 @@ void DrawScreenRecording ( void )
 	);
 	
 	DrawRecordingProgress();
+	DrawWholeRecordingWaveform();
 	
 	DrawRecordingButtons();
 }
@@ -381,17 +384,42 @@ void DrawRecordingProgress ( void )
 		UI_HEADER_HEIGHT*1.5 + 4,
 		recordingLength
 	);
+}
+
+
+void DrawWholeRecordingWaveform ( void )
+{
+	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
 	
-	// Update the waveform
+	int l = STATE_recordings[STATE_selectedRecording].length/WAVE_REDRAW_INTERVAL;
+	int i = 0;
 	
-	float progress = (float)seconds/(float)RECORDING_LENGTH;
+	for ( i = 0; i < l; i++ ) {
+		
+		lcd_line(
+			i,
+			baseY,
+			i,
+			baseY - ( (STATE_recordings[STATE_selectedRecording].samples[i]*100) / 1024 ),
+			UI_C1
+		);
+	}
 	
-	lcd_drawRect(
-		0,
-		UI_HEADER_HEIGHT*1.5 + 10,
-		(int)(progress * (float)DISPLAY_WIDTH),
-		UI_HEADER_HEIGHT*1.5 + 115,
-		UI_C1
+}
+
+
+void ClearRecordingProgress ( void )
+{
+	// Update the progress text
+	lcd_fontColor( WHITE, BLACK );
+	
+	char recordingLength[6] = "00:00";
+	itoa( 0, &recordingLength[3], 10 );
+	
+	lcd_putString( 
+		DISPLAY_WIDTH - 76,
+		UI_HEADER_HEIGHT*1.5 + 4,
+		recordingLength
 	);
 }
 
@@ -487,13 +515,13 @@ void DrawRecordingButtons ( void )
 }
 
 
-void ClearRecording ( Recording recording )
+void ClearRecording ( void )
 {
 	int i = 0;
-	recording.length = 0;
+	STATE_recordings[STATE_selectedRecording].length = 0;
 	
 	for ( i = 0; i < RECORDING_LENGTH*RECORDING_RATE; i++ ) {
-		recording.samples[i] = 0;
+		STATE_recordings[STATE_selectedRecording].samples[i] = 0;
 	}
 }
 
@@ -501,12 +529,44 @@ void ClearRecording ( Recording recording )
 void StartRecording ( void )
 {
 	STATE_recordingInProgress = 1;
+	DrawRecordingButtons();
+	DrawHeader();
+	
+	unsigned int *l = &(STATE_recordings[STATE_selectedRecording].length);
+	int x = *l/WAVE_REDRAW_INTERVAL;
+	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
+	unsigned int sample;
+	
+	while ( STATE_recordingInProgress ) {
+		
+		if ( *l == MAX_RECORDING_LENGTH ) {
+			StopRecording();
+			break;
+		}
+		
+		sample = GetADCReading();
+		STATE_recordings[STATE_selectedRecording].samples[*l] = sample;
+		
+		if ( *l % WAVE_REDRAW_INTERVAL == 0 ) {
+			DrawRecordingProgress();
+			lcd_line(
+				x,
+				baseY,
+				x,
+				baseY - ( (sample*100) / 1024 ),
+				UI_C1
+			);
+			x++;
+		}
+		*l = *l + 1;
+	}
 }
 
 
 void StopRecording ( void )
 {
 	STATE_recordingInProgress = 0;
+	DrawRecordingProgress();
 }
 
 
@@ -661,18 +721,18 @@ void HandleButtonPressRecording ( Button button )
 			
 			switch ( STATE_selectedActionRecording ) {
 				case RECORD_RECORD:
-				if ( STATE_recordingInProgress ) {
-					StopRecording();
-				} else {
-					StartRecording();
-				}
-				DrawRecordingButtons();
-				break;
+					if ( STATE_recordingInProgress ) {
+						StopRecording();
+					} else {
+						StartRecording();
+					}
+					DrawRecordingButtons();
+					break;
 				
 				case RECORD_CLEAR:
-				ClearRecording( STATE_recordings[STATE_selectedRecording] );
-				DrawRecordingProgress();
-				break;
+					ClearRecording();
+					DrawScreenRecording();
+					break;
 			}
 			
 			break;

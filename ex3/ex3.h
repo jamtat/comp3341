@@ -71,9 +71,11 @@ void DrawHomeScreenButtons ( void );
 void DrawPlayButton ( int x, int y, int w, lcd_color_t colour );
 
 void DrawRecordingProgress ( void );
+void DrawWholeRecordingWaveform ( void );
+void ClearRecordingProgress ( void );
 void DrawRecordingButtons ( void );
 
-void ClearRecording ( Recording recording );
+void ClearRecording ( void );
 void StartRecording ( void );
 void StopRecording ( void );
 
