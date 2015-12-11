@@ -20,6 +20,7 @@ enum recordingActions STATE_selectedActionRecording = RECORD_RECORD;
 
 // Playback screen state
 int STATE_playbackInProgress = 0;
+float STATE_playbackSpeed = 2.25;
 unsigned int STATE_playbackPosition = 0;
 
 
@@ -139,8 +140,24 @@ void DrawScreenPlayback ( void )
 	);
 	
 	
+	// Print the instructions
+	lcd_fontColor( UI_TEXT, UI_BG );
+	lcd_putString( 
+		(DISPLAY_WIDTH - 138)/2,
+		DISPLAY_HEIGHT - UI_HEADER_HEIGHT,
+		"Press UP to return home"
+	);
+	
+	lcd_putString( 
+		(DISPLAY_WIDTH - 198)/2,
+		UI_HEADER_HEIGHT*2.5 + 115,
+		"Press L/R to alter playback speed"
+	);
+	
+	
 	DrawWholePlaybackWaveform();
 	DrawPlaybackProgress();
+	DrawPlaybackSpeedBar();
 	
 	DrawPlaybackButtons();
 	
@@ -172,6 +189,7 @@ void DrawScreenRecording ( void )
 		maxRecordingLength
 	);
 	
+	// Print the instructions
 	lcd_fontColor( UI_TEXT, UI_BG );
 	lcd_putString( 
 		(DISPLAY_WIDTH - 138)/2,
@@ -680,6 +698,39 @@ void DrawPlaybackButtons ( void )
 		);
 		
 	}
+}
+
+
+void DrawPlaybackSpeedBar ( void )
+{
+	// Break out the float into digits and deal with them individually
+	
+	int baseY = UI_HEADER_HEIGHT*2.5 + 125;
+	char speedString[] = "Speed: +0.00";
+	char unitString[] = "0";
+	char tenthString[] = "0";
+	char hundredthString[] = "0";
+	int units = ((int)STATE_playbackSpeed)%10;
+	int tenths = ((int)(STATE_playbackSpeed*10.0))%10;
+	int hundredths = ((int)(STATE_playbackSpeed*100.0))%10;
+	
+	speedString[7] = STATE_playbackSpeed < 0.0 ? '-' : '+';
+	
+	itoa( units, unitString, 10 );
+	itoa( tenths, tenthString, 10 );
+	itoa( hundredths, hundredthString, 10 );
+	
+	speedString[8] = unitString[0];
+	speedString[10] = tenthString[0];
+	speedString[11] = hundredthString[0];
+	
+	lcd_fontColor( UI_TEXT, UI_BG );
+	
+	lcd_putString(
+		(DISPLAY_WIDTH - 72)/2,
+		baseY,
+		speedString
+	);
 }
 
 

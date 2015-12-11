@@ -49,6 +49,9 @@
 #define RECORDING_LENGTH 10
 #define RECORDING_RATE 44000
 
+#define PLAYBACK_SPEED_MAX 2.0
+#define PLAYBACK_SPEED_DIFF 0.25
+
 
 typedef struct recording {
 	unsigned int samples[RECORDING_LENGTH*RECORDING_RATE];
@@ -82,6 +85,7 @@ inline void DrawWholePlaybackWaveform ( void );
 void DrawPlaybackWaveform ( int cutoff, lcd_color_t colour );
 void DrawPlaybackProgress ( void );
 void DrawPlaybackButtons ( void );
+void DrawPlaybackSpeedBar ( void );
 
 void ClearRecording ( void );
 void StartRecording ( void );
