@@ -30,11 +30,14 @@
 #define UI_ROW_HEIGHT 20
 #define UI_ROW_PADDING 3
 
+#define UI_PLAYBACK_BAR_HEIGHT 5
+
 #define UI_BG WHITE
 #define UI_TEXT DARK_GRAY
 #define UI_C1 BLUE
 #define UI_C2 NAVY
 #define UI_C_RECORDING RED
+#define UI_C_PLAYBACK 0xFD20
 
 #define UI_HOME_BUTTON_RADIUS 35
 
@@ -74,6 +77,11 @@ void DrawRecordingProgress ( void );
 void DrawWholeRecordingWaveform ( void );
 void ClearRecordingProgress ( void );
 void DrawRecordingButtons ( void );
+
+inline void DrawWholePlaybackWaveform ( void );
+void DrawPlaybackWaveform ( int cutoff, lcd_color_t colour );
+void DrawPlaybackProgress ( void );
+void DrawPlaybackButtons ( void );
 
 void ClearRecording ( void );
 void StartRecording ( void );

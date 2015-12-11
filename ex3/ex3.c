@@ -1,7 +1,7 @@
 #include "ex3.h"
 
 
-// Satte used on all screens
+// State used on all screens
 Recording STATE_recordings[NUM_RECORDINGS];
 int STATE_selectedRecording = 0;
 ScreenState STATE_screen = HOME;
@@ -17,6 +17,10 @@ int STATE_recordingInProgress = 0;
 int STATE_recordingInterrupted = 0;
 enum recordingActions {RECORD_CLEAR, RECORD_RECORD};
 enum recordingActions STATE_selectedActionRecording = RECORD_RECORD;
+
+// Playback screen state
+int STATE_playbackInProgress = 0;
+unsigned int STATE_playbackPosition = 0;
 
 
 int main ( void )
@@ -106,11 +110,47 @@ void DrawScreenHome ( void )
 void DrawScreenPlayback ( void )
 {
 	
+	char recordingLength[6] = "/00:00";
+	int seconds = STATE_recordings[STATE_selectedRecording].length/RECORDING_RATE;
+	
+	// Draw the top panel
+	lcd_fillRect(
+		0,
+		UI_HEADER_HEIGHT*1.5,
+		DISPLAY_WIDTH,
+		UI_HEADER_HEIGHT*1.5 + 115,
+		BLACK
+	);
+	
+	lcd_fontColor( WHITE, BLACK );
+	
+	
+	if ( seconds < 10 ) {
+		itoa( 0, &recordingLength[4], 10 );
+		itoa( seconds, &recordingLength[5], 10 );
+	} else {
+		itoa( seconds, &recordingLength[4], 10 );
+	}
+	
+	lcd_putString( 
+		DISPLAY_WIDTH - 46,
+		UI_HEADER_HEIGHT*1.5 + 4,
+		recordingLength
+	);
+	
+	
+	DrawWholePlaybackWaveform();
+	DrawPlaybackProgress();
+	
+	DrawPlaybackButtons();
+	
 }
 
 
 void DrawScreenRecording ( void )
 {
+	
+	char maxRecordingLength[6] = "/00:00";
 	// Draw the top panel
 	lcd_fillRect(
 		0,
@@ -123,7 +163,7 @@ void DrawScreenRecording ( void )
 	lcd_fontColor( WHITE, BLACK );
 	
 	// Draw the maximum duration
-	char maxRecordingLength[6] = "/00:00";
+	
 	itoa( RECORDING_LENGTH, &maxRecordingLength[4], 10 );
 	
 	lcd_putString( 
@@ -149,13 +189,17 @@ void DrawScreenRecording ( void )
 void DrawHeader ( void )
 {
 	
-	if( !STATE_recordingInProgress ) {
-		lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C1 );
-		lcd_fontColor( UI_BG, UI_C1 );
-	} else {
+	if( STATE_recordingInProgress ) {
 		lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C_RECORDING );
 		lcd_fontColor( UI_BG, UI_C_RECORDING );
+	} else if( STATE_playbackInProgress ) {
+		lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C_PLAYBACK );
+		lcd_fontColor( UI_BG, UI_C_PLAYBACK );
+	} else {
+		lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C1 );
+		lcd_fontColor( UI_BG, UI_C1 );
 	}
+	
 	switch ( STATE_screen ) {
 		
 		case HOME:
@@ -181,6 +225,7 @@ inline void DrawRecordingList()
 	int rowY;
 	char recordingName[11] = "Recording 0";
 	char recordingLength[5] = "00:00";
+	int seconds;
 	
 	for( i = 0; i < NUM_RECORDINGS; i++ ) {
 		
@@ -189,7 +234,7 @@ inline void DrawRecordingList()
 		// Compose the track names and lengths
 		itoa( i+1, &recordingName[10], 10 );
 		
-		int seconds = STATE_recordings[i].length/RECORDING_RATE;
+		seconds = STATE_recordings[i].length/RECORDING_RATE;
 		
 		if ( seconds < 10 ) {
 			itoa( 0, &recordingLength[3], 10 );
@@ -519,6 +564,125 @@ void DrawRecordingButtons ( void )
 }
 
 
+inline void DrawWholePlaybackWaveform ( void )
+{
+	DrawPlaybackWaveform( STATE_recordings[STATE_selectedRecording].length, UI_C1 );
+}
+
+
+void DrawPlaybackWaveform ( int cutoff, lcd_color_t colour )
+{
+	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
+	
+	int l = STATE_recordings[STATE_selectedRecording].length;
+	int scaledWaveRedrawInterval = l/DISPLAY_WIDTH;
+	int i = 0;
+	int x = 0;
+	
+	for ( i = 0; i < min(l, cutoff); i += scaledWaveRedrawInterval ) {
+		
+		lcd_line(
+			x,
+			baseY,
+			x,
+			baseY - ( (STATE_recordings[STATE_selectedRecording].samples[i]*100) / 1024 ),
+			colour
+		);
+		
+		x++;
+	}
+}
+
+
+void DrawPlaybackProgress ( void )
+{
+	
+	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
+	int scaledWaveRedrawInterval = STATE_recordings[STATE_selectedRecording].length/DISPLAY_WIDTH;
+	int progressX = STATE_playbackPosition/scaledWaveRedrawInterval;
+	char recordingLength[6] = "00:00";
+	int seconds = STATE_playbackPosition/RECORDING_RATE;
+		
+	if ( seconds < 10 ) {
+		itoa( 0, &recordingLength[3], 10 );
+		itoa( seconds, &recordingLength[4], 10 );
+	} else {
+		itoa( seconds, &recordingLength[3], 10 );
+	}
+	
+	// Update the progress text
+	lcd_fontColor( WHITE, BLACK );
+	
+	lcd_putString( 
+		DISPLAY_WIDTH - 76,
+		UI_HEADER_HEIGHT*1.5 + 4,
+		recordingLength
+	);
+	
+	// Draw the playback bar
+	lcd_fillRect(
+		0,
+		baseY,
+		progressX,
+		baseY + UI_PLAYBACK_BAR_HEIGHT,
+		UI_C_PLAYBACK
+	);
+	
+	//Erase anything after the playback bar
+	lcd_fillRect(
+		progressX,
+		baseY,
+		DISPLAY_WIDTH,
+		baseY + UI_PLAYBACK_BAR_HEIGHT,
+		UI_BG
+	);
+}
+
+
+void DrawPlaybackButtons ( void )
+{
+	
+	int buttonY = DISPLAY_HEIGHT - (UI_HOME_BUTTON_RADIUS/2)*3;
+	int buttonX = DISPLAY_WIDTH/2;
+
+	// Draw selected play button
+	lcd_fillcircle( 
+		buttonX,
+		buttonY,
+		UI_HOME_BUTTON_RADIUS,
+		UI_TEXT
+	);
+	
+	if ( !STATE_playbackInProgress ) {
+	
+		DrawPlayButton(
+			buttonX - UI_HOME_BUTTON_RADIUS/3,
+			buttonY - UI_HOME_BUTTON_RADIUS/2,
+			UI_HOME_BUTTON_RADIUS,
+			UI_BG
+		);
+	
+	} else {
+		
+		lcd_fillRect(
+			buttonX - 10,
+			buttonY - UI_HOME_BUTTON_RADIUS/2,
+			buttonX - 3,
+			buttonY + UI_HOME_BUTTON_RADIUS/2,
+			UI_BG
+		);
+		lcd_fillRect(
+			buttonX + 3,
+			buttonY - UI_HOME_BUTTON_RADIUS/2,
+			buttonX + 10,
+			buttonY + UI_HOME_BUTTON_RADIUS/2,
+			UI_BG
+		);
+		
+	}
+}
+
+
 void ClearRecording ( void )
 {
 	int i = 0;
@@ -772,6 +936,9 @@ void HandleButtonPressPlayback ( Button button )
 	switch ( button ) {
 		
 		case CENTRE:
+			STATE_playbackInProgress = !STATE_playbackInProgress;
+			DrawPlaybackButtons();
+			DrawHeader();
 			break;
 		
 		case UP:
@@ -789,6 +956,7 @@ void HandleButtonPressPlayback ( Button button )
 			break;
 		
 	}
+
 }
 
 
