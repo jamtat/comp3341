@@ -28,6 +28,7 @@ int STATE_playbackInterrupted = 0;
 
 int main ( void )
 {
+	int i = 0;
 	
 	EnableDisplay();
 	
@@ -35,32 +36,24 @@ int main ( void )
 	EnableDAC();
 	
 	// Initialise the recordings
-	int i = 0;
 	for ( i = 0; i < NUM_RECORDINGS; i++ ) {
 		STATE_recordings[i].length = 0;
 	}
 	
-	
 	InitUI();
 	
 	SetupButtonHandlers();
-	
-	// Pipe input straight to output
-	/*while(1) {
-		unsigned int micInput = GetADCReading();
-		
-		SetDACOutput( micInput );
-	}*/
+
 	return 0;
 }
 
 
 void InitUI ( void )
 {
+	int y = 0;
+	
 	//Start with black fill
 	lcd_fillScreen( BLACK );
-	
-	int y = 0;
 	
 	while ( y < DISPLAY_HEIGHT/2 ) {
 		
@@ -85,7 +78,6 @@ void ClearScreenContents ( void )
 
 void DrawScreen ( void )
 {
-	
 	ClearScreenContents();
 	
 	switch ( STATE_screen ) {
@@ -112,7 +104,6 @@ void DrawScreenHome ( void )
 
 void DrawScreenPlayback ( void )
 {
-	
 	char recordingLength[6] = "/00:00";
 	int seconds = STATE_recordings[STATE_selectedRecording].length/RECORDING_RATE;
 	
@@ -167,9 +158,9 @@ void DrawScreenPlayback ( void )
 
 
 void DrawScreenRecording ( void )
-{
-	
+{	
 	char maxRecordingLength[6] = "/00:00";
+	
 	// Draw the top panel
 	lcd_fillRect(
 		0,
@@ -208,7 +199,6 @@ void DrawScreenRecording ( void )
 
 void DrawHeader ( void )
 {
-	
 	if( STATE_recordingInProgress ) {
 		lcd_fillRect( 0, 0, DISPLAY_WIDTH, UI_HEADER_HEIGHT, UI_C_RECORDING );
 		lcd_fontColor( UI_BG, UI_C_RECORDING );
@@ -320,7 +310,6 @@ inline void DrawRecordingList ( void )
 
 void DrawHomeScreenButtons ( void )
 {
-	
 	int buttonY = DISPLAY_HEIGHT - (UI_HOME_BUTTON_RADIUS/2)*3;
 	
 	//Clear draw areas
@@ -430,14 +419,13 @@ void DrawPlayButton ( int x, int y, int h, lcd_color_t colour )
 
 void DrawRecordingProgress ( void )
 {
+	char recordingLength[6] = "00:00";
+	
+	int seconds = STATE_recordings[STATE_selectedRecording].length/RECORDING_RATE;
 	
 	// Update the progress text
 	lcd_fontColor( WHITE, BLACK );
 	
-	char recordingLength[6] = "00:00";
-	
-	int seconds = STATE_recordings[STATE_selectedRecording].length/RECORDING_RATE;
-		
 	if ( seconds < 10 ) {
 		itoa( 0, &recordingLength[3], 10 );
 		itoa( seconds, &recordingLength[4], 10 );
@@ -473,16 +461,16 @@ void DrawWholeRecordingWaveform ( void )
 		
 		x++;
 	}
-	
 }
 
 
 void ClearRecordingProgress ( void )
 {
+	char recordingLength[6] = "00:00";
+	
 	// Update the progress text
 	lcd_fontColor( WHITE, BLACK );
 	
-	char recordingLength[6] = "00:00";
 	itoa( 0, &recordingLength[3], 10 );
 	
 	lcd_putString( 
@@ -505,8 +493,6 @@ void DrawRecordingButtons ( void )
 		buttonY + UI_HOME_BUTTON_RADIUS,
 		UI_BG
 	);
-	
-	
 	
 	//Draw clear button
 	if ( STATE_selectedActionRecording != RECORD_CLEAR ) {
@@ -616,7 +602,6 @@ void DrawPlaybackWaveform ( int cutoff, lcd_color_t colour )
 
 void DrawPlaybackProgress ( void )
 {
-	
 	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
 	int scaledWaveRedrawInterval = STATE_recordings[STATE_selectedRecording].length/DISPLAY_WIDTH;
 	int progressX = STATE_playbackPosition/scaledWaveRedrawInterval;
@@ -661,7 +646,6 @@ void DrawPlaybackProgress ( void )
 
 void DrawPlaybackButtons ( void )
 {
-	
 	int buttonY = DISPLAY_HEIGHT - (UI_HOME_BUTTON_RADIUS/2)*3;
 	int buttonX = DISPLAY_WIDTH/2;
 
@@ -705,8 +689,7 @@ void DrawPlaybackButtons ( void )
 
 void DrawPlaybackSpeedBar ( void )
 {
-	// Break out the float into digits and deal with them individually
-	
+	// Break out the float into digits and deal with them individually	
 	int baseY = UI_HEADER_HEIGHT*2.5 + 155;
 	char speedString[] = "Speed: +0.00";
 	char unitString[] = "0";
@@ -748,15 +731,15 @@ void ClearRecording ( void )
 
 
 void StartRecording ( void )
-{
-	STATE_recordingInProgress = 1;
-	DrawRecordingButtons();
-	DrawHeader();
-	
+{	
 	unsigned int *l = &(STATE_recordings[STATE_selectedRecording].length);
 	int x = *l/WAVE_REDRAW_INTERVAL;
 	const int baseY = UI_HEADER_HEIGHT*1.5 + 115;
 	unsigned int sample;
+	
+	STATE_recordingInProgress = 1;
+	DrawRecordingButtons();
+	DrawHeader();
 	
 	while ( STATE_recordingInProgress  ) {
 		
@@ -813,15 +796,7 @@ void StartPlayback ( void )
 		if ( IsButtonPressed( BUTTON_CENTRE ) ) {
 			STATE_playbackInterrupted = 1;
 			StopPlayback();
-		}/* else if ( IsButtonPressed( BUTTON_LEFT ) ) {
-			HandleButtonPressPlayback( LEFT );
-			STATE_playbackButtonPressed = 1;
-		} else if ( IsButtonPressed( BUTTON_RIGHT ) ) {
-			HandleButtonPressPlayback( LEFT );
-			STATE_playbackButtonPressed = 1;
-		} else {
-			STATE_playbackButtonPressed = 0;
-		}*/
+		}
 		
 		WaitForCycles( STATE_playbackWaitCycles );
 		
@@ -851,8 +826,7 @@ void StopPlayback ( void )
 
 // Turn on the ADC
 void EnableADC ( void )
-{
-	
+{	
 	// Set the ADC to be an input
 	PINSEL1 = SetBitOff( SetBitOn( PINSEL1, 16 ), 17 );
 	// Enable the ADC in the Peripheral Control Register
@@ -871,10 +845,9 @@ inline void TakeADCReading ( void )
 // Block and return a voltage reading when done
 inline unsigned int GetADCReading ( void )
 {
+	unsigned long hasNewValueMask = (1 << 31);
 	
 	TakeADCReading();
-	
-	unsigned long hasNewValueMask = (1 << 31);
 	
 	// Wait until the ADC yields a new value
 	while( !(hasNewValueMask & AD0DR1) );
@@ -1111,10 +1084,8 @@ void HandleButtonPressPlayback ( Button button )
 
 // Wait a number of milliseconds using T2
 void wait ( unsigned int milliseconds )
-{
-	int waitCycles = MillisecondsToCycles( milliseconds );
-	
-	WaitForCycles( waitCycles );
+{	
+	WaitForCycles( MillisecondsToCycles( milliseconds ) );
 }
 
 
