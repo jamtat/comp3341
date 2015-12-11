@@ -768,6 +768,7 @@ void StartRecording ( void )
 		
 		sample = GetADCReading();
 		STATE_recordings[STATE_selectedRecording].samples[*l] = sample;
+		SetDACOutput( sample );
 		
 		if ( *l % WAVE_REDRAW_INTERVAL == 0 ) {
 			DrawRecordingProgress();
@@ -788,6 +789,7 @@ void StartRecording ( void )
 void StopRecording ( void )
 {
 	STATE_recordingInProgress = 0;
+	SetDACOutput( 0 );
 	DrawRecordingProgress();
 }
 
