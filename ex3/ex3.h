@@ -91,6 +91,9 @@ void ClearRecording ( void );
 void StartRecording ( void );
 void StopRecording ( void );
 
+void StartPlayback ( void );
+void StopPlayback ( void );
+
 void EnableADC ( void );
 inline void TakeADCReading( void );
 inline unsigned int GetADCReading( void );

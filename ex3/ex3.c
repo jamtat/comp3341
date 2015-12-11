@@ -1,6 +1,5 @@
 #include "ex3.h"
 
-
 // State used on all screens
 Recording STATE_recordings[NUM_RECORDINGS];
 int STATE_selectedRecording = 0;
@@ -20,8 +19,11 @@ enum recordingActions STATE_selectedActionRecording = RECORD_RECORD;
 
 // Playback screen state
 int STATE_playbackInProgress = 0;
-float STATE_playbackSpeed = 2.25;
-unsigned int STATE_playbackPosition = 0;
+float STATE_playbackSpeed = 1.0;
+int STATE_playbackPosition = 0;
+int STATE_playbackWaitCycles = 250;
+int STATE_playbackIncrement = 1;
+int STATE_playbackInterrupted = 0;
 
 
 int main ( void )
@@ -705,14 +707,14 @@ void DrawPlaybackSpeedBar ( void )
 {
 	// Break out the float into digits and deal with them individually
 	
-	int baseY = UI_HEADER_HEIGHT*2.5 + 125;
+	int baseY = UI_HEADER_HEIGHT*2.5 + 155;
 	char speedString[] = "Speed: +0.00";
 	char unitString[] = "0";
 	char tenthString[] = "0";
 	char hundredthString[] = "0";
-	int units = ((int)STATE_playbackSpeed)%10;
-	int tenths = ((int)(STATE_playbackSpeed*10.0))%10;
-	int hundredths = ((int)(STATE_playbackSpeed*100.0))%10;
+	int units = abs((int)STATE_playbackSpeed)%10;
+	int tenths = abs((int)(STATE_playbackSpeed*10.0))%10;
+	int hundredths = abs((int)(STATE_playbackSpeed*100.0))%10;
 	
 	speedString[7] = STATE_playbackSpeed < 0.0 ? '-' : '+';
 	
@@ -789,6 +791,61 @@ void StopRecording ( void )
 	DrawRecordingProgress();
 }
 
+
+void StartPlayback ( void )
+{
+	STATE_playbackInProgress = 1;
+	
+	int l = STATE_recordings[STATE_selectedRecording].length;
+	int scaledWaveRedrawInterval = l/DISPLAY_WIDTH;
+	
+	if ( !l ) {
+		StopPlayback();
+	}
+	
+	DrawPlaybackButtons();
+	DrawHeader();
+		
+	while ( STATE_playbackInProgress ) {
+		
+		if ( IsButtonPressed( BUTTON_CENTRE ) ) {
+			STATE_playbackInterrupted = 1;
+			StopPlayback();
+		}/* else if ( IsButtonPressed( BUTTON_LEFT ) ) {
+			HandleButtonPressPlayback( LEFT );
+			STATE_playbackButtonPressed = 1;
+		} else if ( IsButtonPressed( BUTTON_RIGHT ) ) {
+			HandleButtonPressPlayback( LEFT );
+			STATE_playbackButtonPressed = 1;
+		} else {
+			STATE_playbackButtonPressed = 0;
+		}*/
+		
+		WaitForCycles( STATE_playbackWaitCycles );
+		
+		STATE_playbackPosition += STATE_playbackIncrement;
+		
+		if ( STATE_playbackPosition > l ) {
+			STATE_playbackPosition = 0;
+		} else if( STATE_playbackPosition < 0 ) {
+			STATE_playbackPosition = l;
+		}
+		
+		SetDACOutput( STATE_recordings[STATE_selectedRecording].samples[STATE_playbackPosition] );
+		
+		if ( STATE_playbackPosition%scaledWaveRedrawInterval == 0 ) {
+			DrawPlaybackProgress();
+		}
+	}
+	
+}
+
+void StopPlayback ( void )
+{
+	STATE_playbackInProgress = 0;
+	SetDACOutput( 0 );
+	DrawPlaybackProgress();
+}
 
 // Turn on the ADC
 void EnableADC ( void )
@@ -984,15 +1041,24 @@ void HandleButtonPressRecording ( Button button )
 
 void HandleButtonPressPlayback ( Button button )
 {
+	
 	switch ( button ) {
 		
 		case CENTRE:
-			STATE_playbackInProgress = !STATE_playbackInProgress;
+			if ( STATE_playbackInProgress ) {
+				StopPlayback();
+			} else if ( !STATE_playbackInterrupted ) {
+				StartPlayback();
+			} else {
+				STATE_playbackInterrupted = 0;
+			}
+			
 			DrawPlaybackButtons();
 			DrawHeader();
 			break;
 		
 		case UP:
+			StopPlayback();
 			STATE_screen = HOME;
 			DrawScreen();
 			break;
@@ -1001,11 +1067,40 @@ void HandleButtonPressPlayback ( Button button )
 			break;
 			
 		case LEFT:
+			// Change the playback speed and disallow 0 as a value
+			STATE_playbackSpeed = max(
+				STATE_playbackSpeed - PLAYBACK_SPEED_DIFF,
+				-PLAYBACK_SPEED_MAX
+			);
+			if ( STATE_playbackSpeed > -PLAYBACK_SPEED_DIFF/2
+				&& STATE_playbackSpeed < PLAYBACK_SPEED_DIFF/2 ) {
+				STATE_playbackSpeed = -PLAYBACK_SPEED_DIFF;
+			}
+			DrawPlaybackSpeedBar();
 			break;
 			
 		case RIGHT:
+			// Change the playback speed and disallow 0 as a value
+			STATE_playbackSpeed = min(
+				STATE_playbackSpeed + PLAYBACK_SPEED_DIFF,
+				PLAYBACK_SPEED_MAX
+			);
+			if ( STATE_playbackSpeed > -PLAYBACK_SPEED_DIFF/2
+				&& STATE_playbackSpeed < PLAYBACK_SPEED_DIFF/2 ) {
+				STATE_playbackSpeed = PLAYBACK_SPEED_DIFF;
+			}
+			DrawPlaybackSpeedBar();
 			break;
 		
+	}
+	
+	// Compute the playback cycles
+	if ( STATE_playbackSpeed > 0 ) {
+		STATE_playbackWaitCycles = (int)(250.0 / STATE_playbackSpeed);
+		STATE_playbackIncrement = 1;
+	} else {
+		STATE_playbackWaitCycles = (int)(250.0 / -STATE_playbackSpeed);
+		STATE_playbackIncrement = -1;
 	}
 
 }
