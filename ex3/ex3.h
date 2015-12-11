@@ -51,6 +51,7 @@
 
 #define PLAYBACK_SPEED_MAX 2.0
 #define PLAYBACK_SPEED_DIFF 0.25
+#define PLAYBACK_INITIAL_CYCLES 260
 
 
 typedef struct recording {
@@ -102,7 +103,7 @@ void EnableDAC ( void );
 inline void SetDACOutput( unsigned int voltage );
 
 inline void SetupButtonHandlers ( void );
-void OnButtonPress(void) __attribute__ ((interrupt));
+void OnButtonPress ( void ) __attribute__ ((interrupt));
 void HandleButtonPressHome ( Button button );
 void HandleButtonPressRecording ( Button button );
 void HandleButtonPressPlayback ( Button button );

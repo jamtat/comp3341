@@ -21,7 +21,7 @@ enum recordingActions STATE_selectedActionRecording = RECORD_RECORD;
 int STATE_playbackInProgress = 0;
 float STATE_playbackSpeed = 1.0;
 int STATE_playbackPosition = 0;
-int STATE_playbackWaitCycles = 250;
+int STATE_playbackWaitCycles = PLAYBACK_INITIAL_CYCLES;
 int STATE_playbackIncrement = 1;
 int STATE_playbackInterrupted = 0;
 
@@ -238,7 +238,7 @@ void DrawHeader ( void )
 
 
 // Draw the list of recordings
-inline void DrawRecordingList()
+inline void DrawRecordingList ( void )
 {
 	int i;
 	int startY = UI_HEADER_HEIGHT*2;
@@ -799,7 +799,7 @@ void StartPlayback ( void )
 	STATE_playbackInProgress = 1;
 	
 	int l = STATE_recordings[STATE_selectedRecording].length;
-	int scaledWaveRedrawInterval = l/DISPLAY_WIDTH;
+	int scaledWaveRedrawInterval = 4*l/DISPLAY_WIDTH;
 	
 	if ( !l ) {
 		StopPlayback();
@@ -920,7 +920,7 @@ inline void SetupButtonHandlers()
 
 
 // Handle pressing of the joystick buttons
-void OnButtonPress()
+void OnButtonPress ( void )
 {
 	Button buttonPressed;
 	if ( IO0_INT_STAT_R & (1<<BUTTON_UP) ) {
@@ -1062,6 +1062,7 @@ void HandleButtonPressPlayback ( Button button )
 		case UP:
 			StopPlayback();
 			STATE_screen = HOME;
+			STATE_playbackPosition = 0;
 			DrawScreen();
 			break;
 			
@@ -1098,10 +1099,10 @@ void HandleButtonPressPlayback ( Button button )
 	
 	// Compute the playback cycles
 	if ( STATE_playbackSpeed > 0 ) {
-		STATE_playbackWaitCycles = (int)(250.0 / STATE_playbackSpeed);
+		STATE_playbackWaitCycles = (int)(((float)PLAYBACK_INITIAL_CYCLES) / STATE_playbackSpeed);
 		STATE_playbackIncrement = 1;
 	} else {
-		STATE_playbackWaitCycles = (int)(250.0 / -STATE_playbackSpeed);
+		STATE_playbackWaitCycles = (int)(((float)PLAYBACK_INITIAL_CYCLES) / -STATE_playbackSpeed);
 		STATE_playbackIncrement = -1;
 	}
 
