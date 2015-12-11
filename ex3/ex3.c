@@ -957,8 +957,14 @@ void HandleButtonPressHome ( Button button )
 			break;
 			
 		case LEFT:
+			if ( STATE_selectedActionHome == PLAY ) break;
+			STATE_selectedActionHome = PLAY;
+			DrawHomeScreenButtons();
+			break;
+			
 		case RIGHT:
-			STATE_selectedActionHome = STATE_selectedActionHome == PLAY ? RECORD : PLAY;
+			if ( STATE_selectedActionHome == RECORD ) break;
+			STATE_selectedActionHome = RECORD;
 			DrawHomeScreenButtons();
 			break;
 		
@@ -1002,9 +1008,15 @@ void HandleButtonPressRecording ( Button button )
 			break;
 			
 		case LEFT:
+			if ( STATE_recordingInProgress ) break;
+			if ( STATE_selectedActionRecording == RECORD_CLEAR ) break;
+			STATE_selectedActionRecording = RECORD_CLEAR;
+			DrawRecordingButtons();
+			break;
 		case RIGHT:
 			if ( STATE_recordingInProgress ) break;
-			STATE_selectedActionRecording = STATE_selectedActionRecording == RECORD_CLEAR ? RECORD_RECORD : RECORD_CLEAR;
+			if ( STATE_selectedActionRecording == RECORD_RECORD ) break;
+			STATE_selectedActionRecording = RECORD_RECORD;
 			DrawRecordingButtons();
 			break;
 		
