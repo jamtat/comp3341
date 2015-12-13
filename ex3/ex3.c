@@ -817,12 +817,14 @@ void StartPlayback ( void )
 	
 }
 
+
 void StopPlayback ( void )
 {
 	STATE_playbackInProgress = 0;
 	SetDACOutput( 0 );
 	DrawPlaybackProgress();
 }
+
 
 // Turn on the ADC
 void EnableADC ( void )
@@ -892,7 +894,7 @@ inline void SetupButtonHandlers()
 }
 
 
-// Handle pressing of the joystick buttons
+// Delegate pressing of joystick buttons to appropriate function depending on active screen
 void OnButtonPress ( void )
 {
 	Button buttonPressed;
@@ -941,11 +943,13 @@ void HandleButtonPressHome ( Button button )
 	
 	switch ( button ) {
 		
+		// Go to 
 		case CENTRE:
 			STATE_screen = (STATE_selectedActionHome == PLAY) ? PLAYBACK : RECORDING;
 			DrawScreen();
 			break;
 		
+		// Navigate up and down list
 		case UP:
 			STATE_selectedRecording = max( 0, STATE_selectedRecording - 1 );
 			DrawRecordingList();
